@@ -4,8 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-#API_URL se considera normal secret si trebuie pus intr-un venv file sau config.yaml file si nu se urca pe github
-#utils.py citeste dintr-un .venv si .venv nu este pe github, iar .venv il injectam in machine
 API_URL = os.getenv("API_URL")
 
 
