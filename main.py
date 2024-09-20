@@ -1,6 +1,4 @@
 """
-pip install fastapi si uvicorn
-
 To run the app, in terminal: uvicorn main:app --reload
 """
 
