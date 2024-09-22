@@ -24,20 +24,33 @@ class OrderRepository:
             order_date=db_order.order_date,
             status=db_order.status,
             total_amount=db_order.total_amount,
-            order_items=[OrderItemRequest.model_validate(item) for item in db_order.order_items]
+            order_items=[
+                OrderItemRequest(
+                    medication_id=item.medication_id,
+                    quantity=item.quantity,
+                    price=item.price
+                ) for item in db_order.order_items
+            ]
         )
 
     def get_all(self, db: Session) -> List[OrderResponse]:
+        orders = db.query(OrderDB).all()
         return [OrderResponse(
             id=order.id,
             pharmacy_id=order.pharmacy_id,
             order_date=order.order_date,
             status=order.status,
             total_amount=order.total_amount,
-            order_items=[OrderItemRequest.model_validate(item) for item in order.order_items]
-        ) for order in db.query(OrderDB).all()]
+            order_items=[
+                OrderItemRequest(
+                    medication_id=item.medication_id,
+                    quantity=item.quantity,
+                    price=item.price
+                ) for item in order.order_items
+            ]
+        ) for order in orders]
 
-    def get_by_id(self, db: Session, order_id: int) -> Optional[OrderResponse]:
+    def get_by_id(self, db: Session, order_id: int) -> OrderResponse:
         db_order = db.query(OrderDB).filter(OrderDB.id == order_id).first()
         if db_order:
             return OrderResponse(
@@ -46,7 +59,13 @@ class OrderRepository:
                 order_date=db_order.order_date,
                 status=db_order.status,
                 total_amount=db_order.total_amount,
-                order_items=[OrderItemRequest.model_validate(item) for item in db_order.order_items]
+                order_items=[
+                    OrderItemRequest(
+                        medication_id=item.medication_id,
+                        quantity=item.quantity,
+                        price=item.price
+                    ) for item in db_order.order_items
+                ]
             )
         return None
 
@@ -56,13 +75,20 @@ class OrderRepository:
             db_order.status = new_status
             db.commit()
             db.refresh(db_order)
+            #Map OrderItemDB to OrderItemRequest
             return OrderResponse(
                 id=db_order.id,
                 pharmacy_id=db_order.pharmacy_id,
                 order_date=db_order.order_date,
                 status=db_order.status,
                 total_amount=db_order.total_amount,
-                order_items=[OrderItemRequest.model_validate(item) for item in db_order.order_items]
+                order_items=[
+                            OrderItemRequest(
+                                medication_id=item.medication_id,
+                                quantity=item.quantity,
+                                price=item.price
+                            ) for item in db_order.order_items
+                ]
             )
         return None
 
@@ -75,7 +101,13 @@ class OrderRepository:
                 order_date=db_order.order_date,
                 status=db_order.status,
                 total_amount=db_order.total_amount,
-                order_items=[OrderItemRequest.model_validate(item) for item in db_order.order_items]
+                order_items=[
+                            OrderItemRequest(
+                                medication_id=item.medication_id,
+                                quantity=item.quantity,
+                                price=item.price
+                            ) for item in db_order.order_items
+                ]
             )
             db.delete(db_order)
             db.commit()

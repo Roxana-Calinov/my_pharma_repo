@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 from database import Base
 from pydantic import BaseModel, Field
 from datetime import datetime
+from enum import Enum as PyEnum
 
 # Database models
 class MedicationDB(Base):
@@ -43,7 +44,6 @@ class OrderDB(Base):
     order_date = Column(DateTime, default=datetime.utcnow)
     status = Column(Enum("pending", "processed", "delivered", "canceled", name="order_status"))
     total_amount = Column(Float)
-
     pharmacy = relationship("PharmacyDB", back_populates="orders")
     order_items = relationship("OrderItemDB", back_populates="order")
 
@@ -55,19 +55,27 @@ class OrderItemDB(Base):
     medication_id = Column(Integer, ForeignKey("medications.id"), index=True)
     quantity = Column(Integer)
     price = Column(Float)
-
     order = relationship("OrderDB", back_populates="order_items")
     medication = relationship("MedicationDB", back_populates="order_items")
 
 # Pydantic models
+class MedicationType(PyEnum):
+    RX = "RX"
+    OTC = "OTC"
+
+class StockLevel(PyEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
 class MedicationRequest(BaseModel):
     name: str = Field(min_length=3, max_length=50)
-    type: str = Field(..., description="Medication type: RX or OTC")
+    type: MedicationType  # Enum corresponding to SQLAlchemy Enum
     quantity: int = Field(ge=0, description="Available medications in the pharmacy")
     price: float = Field(gt=0)
     pharma_id: int = Field(..., description="Pharma where the medication can be found")
     stock: int = Field(ge=0, description="The number of medications in stock in the warehouse")
-    stock_level: str = Field(..., description="Stock level: low, medium, high")
+    stock_level: StockLevel  # Enum corresponding to SQLAlchemy Enum
 
 class Medication(MedicationRequest):
     id: int

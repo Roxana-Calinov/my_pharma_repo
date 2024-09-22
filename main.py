@@ -17,6 +17,8 @@ app = FastAPI()
 medication_repo = MedicationRepository()
 pharmacy_repo = PharmacyRepository()
 order_repo = OrderRepository()
+print(dir(order_repo))
+
 
 def get_db():
     db = SessionLocal()
