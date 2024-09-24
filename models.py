@@ -4,9 +4,9 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship
 from database import Base
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
 from datetime import datetime
-from enum import Enum as PyEnum
+from typing import List
 
 # Database models
 class MedicationDB(Base):
@@ -14,12 +14,12 @@ class MedicationDB(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
-    type = Column(Enum("RX", "OTC", name="medication_type"), index=True)
+    type = Column(String, index=True)
     quantity = Column(Integer, index=True)
     price = Column(Float, index=True)
     pharma_id = Column(Integer, ForeignKey("pharmacies.id"), index=True)
     stock = Column(Integer, index=True)
-    stock_level = Column(Enum("low", "medium", "high", name="stock_level"), index=True)
+    stock_level = Column(String, index=True)
 
     pharmacy = relationship("PharmacyDB", back_populates="medications")
     order_items = relationship("OrderItemDB", back_populates="medication")
@@ -42,8 +42,9 @@ class OrderDB(Base):
     id = Column(Integer, primary_key=True, index=True)
     pharmacy_id = Column(Integer, ForeignKey("pharmacies.id"), index=True)
     order_date = Column(DateTime, default=datetime.utcnow)
-    status = Column(Enum("pending", "processed", "delivered", "canceled", name="order_status"))
+    status = Column(String)
     total_amount = Column(Float)
+
     pharmacy = relationship("PharmacyDB", back_populates="orders")
     order_items = relationship("OrderItemDB", back_populates="order")
 
@@ -55,27 +56,20 @@ class OrderItemDB(Base):
     medication_id = Column(Integer, ForeignKey("medications.id"), index=True)
     quantity = Column(Integer)
     price = Column(Float)
+
     order = relationship("OrderDB", back_populates="order_items")
     medication = relationship("MedicationDB", back_populates="order_items")
 
+
 # Pydantic models
-class MedicationType(PyEnum):
-    RX = "RX"
-    OTC = "OTC"
-
-class StockLevel(PyEnum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-
 class MedicationRequest(BaseModel):
     name: str = Field(min_length=3, max_length=50)
-    type: MedicationType  # Enum corresponding to SQLAlchemy Enum
+    type: str = Field(..., description="Medication type: RX or OTC")
     quantity: int = Field(ge=0, description="Available medications in the pharmacy")
     price: float = Field(gt=0)
     pharma_id: int = Field(..., description="Pharma where the medication can be found")
     stock: int = Field(ge=0, description="The number of medications in stock in the warehouse")
-    stock_level: StockLevel  # Enum corresponding to SQLAlchemy Enum
+    stock_level: str = Field(..., description="Stock level: low, medium, high")
 
 class Medication(MedicationRequest):
     id: int
@@ -102,7 +96,8 @@ class OrderItemRequest(BaseModel):
 
 class OrderRequest(BaseModel):
     pharmacy_id: int
-    order_items: list[OrderItemRequest]
+    order_items: List[OrderItemRequest]
+    status: str = Field(..., description="Order's status")
 
 class OrderResponse(BaseModel):
     id: int
@@ -110,7 +105,8 @@ class OrderResponse(BaseModel):
     order_date: datetime
     status: str
     total_amount: float
-    order_items: list[OrderItemRequest]
+    order_items: List[OrderItemRequest]
 
     class Config:
         from_attributes = True
+

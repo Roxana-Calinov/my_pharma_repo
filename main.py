@@ -6,19 +6,18 @@ from typing import List
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
+from models import MedicationRequest, Medication, PharmacyRequest, Pharmacy, OrderRequest, OrderResponse
 from medications import MedicationRepository
 from pharmacies import PharmacyRepository
 from orders import OrderRepository
-from models import MedicationRequest, Medication, PharmacyRequest, Pharmacy, OrderRequest, OrderResponse
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+app = FastAPI(debug=True, title="Pharma Stock API", version="1.0")
 medication_repo = MedicationRepository()
 pharmacy_repo = PharmacyRepository()
 order_repo = OrderRepository()
-print(dir(order_repo))
-
+#print(dir(order_repo))
 
 def get_db():
     db = SessionLocal()
@@ -28,10 +27,6 @@ def get_db():
         db.close()
 
 # Medication endpoints
-@app.post("/medications", response_model=Medication)
-async def create_medication(request: MedicationRequest, db: Session = Depends(get_db)):
-    return medication_repo.add(db, request)
-
 @app.get("/medications", response_model=List[Medication])
 async def get_medications(db: Session = Depends(get_db)):
     return medication_repo.get_all(db)
@@ -42,6 +37,10 @@ async def get_medication(medication_id: int, db: Session = Depends(get_db)):
     if medication is None:
         raise HTTPException(status_code=404, detail="Medication not found")
     return medication
+
+@app.post("/medications", response_model=Medication)
+async def create_medication(request: MedicationRequest, db: Session = Depends(get_db)):
+    return medication_repo.add(db, request)
 
 @app.put("/medications/{medication_id}", response_model=Medication)
 async def update_medication(medication_id: int, request: MedicationRequest, db: Session = Depends(get_db)):
@@ -56,6 +55,7 @@ async def delete_medication(medication_id: int, db: Session = Depends(get_db)):
     if medication is None:
         raise HTTPException(status_code=404, detail="Medication not found")
     return medication
+
 
 # Pharmacy endpoints
 @app.post("/pharmacies", response_model=Pharmacy)
@@ -87,6 +87,7 @@ async def delete_pharmacy(pharmacy_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Pharmacy not found")
     return pharmacy
 
+
 # Order endpoints
 @app.post("/orders", response_model=OrderResponse)
 async def create_order(request: OrderRequest, db: Session = Depends(get_db)):
@@ -103,7 +104,14 @@ async def get_order(order_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Order not found")
     return order
 
-@app.put("/orders/{order_id}", response_model=OrderResponse)
+@app.put("/orders/{order_id}/update", response_model=OrderResponse)
+async def update_order(order_id: int, request: OrderRequest, db: Session = Depends(get_db)):
+    order = order_repo.update(db, order_id, request)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+@app.put("/orders/{order_id}/status", response_model=OrderResponse)
 async def update_order_status(order_id: int, new_status: str, db: Session = Depends(get_db)):
     order = order_repo.update_status(db, order_id, new_status)
     if order is None:
@@ -116,3 +124,4 @@ async def delete_order(order_id: int, db: Session = Depends(get_db)):
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
+
