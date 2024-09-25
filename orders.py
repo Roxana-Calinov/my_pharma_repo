@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from models import OrderRequest, OrderResponse, OrderDB, OrderItemDB, OrderItemRequest
+from models import OrderRequest, OrderResponse, OrderDB, OrderItemDB, OrderItemRequest, MedicationDB
 
 class OrderRepository:
     def check_duplicate_order(self, db: Session, order_request: OrderRequest) -> bool:
@@ -9,7 +9,7 @@ class OrderRepository:
             OrderDB.status == order_request.status
         ).all()
 
-        #check duplicates
+        #Check duplicates
         for order in existing_orders:
             #Compare orders items
             if len(order.order_items) == len(order_request.order_items):
@@ -27,22 +27,45 @@ class OrderRepository:
     def add(self, db: Session, order_request: OrderRequest) -> OrderResponse:
         #Check if an order is duplicated
         if self.check_duplicate_order(db, order_request):
-            raise ValueError("An order with the same pharmacy and date already exists.")
+            raise ValueError("An order with the same pharmacy and data already exists.")
 
         db_order = OrderDB(pharmacy_id=order_request.pharmacy_id, status="pending")
         db.add(db_order)
-        db.flush()  # This assigns an id to db_order
+        db.flush()  #Forces generation of an order id
 
         total_amount = 0
         for item in order_request.order_items:
-            db_order_item = OrderItemDB(order_id=db_order.id, **item.model_dump())
-            db.add(db_order_item)
-            total_amount += item.price * item.quantity
+            #Access the medication from DB
+            medication = db.query(MedicationDB).filter_by(id=item.medication_id).first()
 
+            if not medication:
+                raise ValueError(f"Medication with id {item.medication_id} not found.")
+
+            #Check the stock avalability
+            if medication.stock < item.quantity:
+                raise ValueError(f"Not enough stock for medication {medication.name}.")
+
+            #Stock & quantity update
+            medication.stock -= item.quantity
+            medication.quantity += item.quantity
+
+            medication_price = medication.price
+
+            db_order_item = OrderItemDB(order_id=db_order.id, medication_id=item.medication_id, quantity=item.quantity,
+                                        price=medication_price)
+            db.add(db_order_item)
+
+            #Total order amount
+            total_amount += medication.price * item.quantity
+
+        #Set the total amount in the order
         db_order.total_amount = total_amount
+
+        #Commit the updates
         db.commit()
         db.refresh(db_order)
 
+        #Return the order response
         return OrderResponse(
             id=db_order.id,
             pharmacy_id=db_order.pharmacy_id,
@@ -59,25 +82,81 @@ class OrderRepository:
         )
 
     def update(self, db: Session, order_id: int, order_request: OrderRequest) -> Optional[OrderResponse]:
+        #Current order
         db_order = db.query(OrderDB).filter(OrderDB.id == order_id).first()
         if not db_order:
             return None  #Return None if the order does not exist
 
-        # Check duplicates, excluding the current order
+        #Check if an order is duplicated
         if self.check_duplicate_order(db, order_request):
-            raise ValueError("An order with the same pharmacy and date already exists.")
+            raise ValueError("An order with the same pharmacy and data already exists.")
 
-        # Update order's data
+        #Get the existing order items
+        existing_order_items = db.query(OrderItemDB).filter(OrderItemDB.order_id == order_id).all()
+        existing_items_by_medication = {item.medication_id: item for item in existing_order_items}
+
+        #Update order's basic data
         db_order.pharmacy_id = order_request.pharmacy_id
         db_order.status = order_request.status
-        db_order.total_amount = sum(item.price * item.quantity for item in order_request.order_items)
 
-        db.query(OrderItemDB).filter(OrderItemDB.order_id == order_id).delete()
+        total_amount = 0
 
+        #Iterate through the new order items
         for item in order_request.order_items:
-            db_order_item = OrderItemDB(order_id=db_order.id, **item.model_dump())
-            db.add(db_order_item)
+            medication = db.query(MedicationDB).filter_by(id=item.medication_id).first()
+            if not medication:
+                raise ValueError(f"Medication with id {item.medication_id} not found.")
 
+            #Check if the item already exists in the order
+            if item.medication_id in existing_items_by_medication:
+                existing_item = existing_items_by_medication[item.medication_id]
+
+                #Calculate stock changes based on quantity difference
+                quantity_diff = item.quantity - existing_item.quantity
+
+                if quantity_diff > 0:                   #If quantity increased, decrease stock
+                    if medication.stock < quantity_diff:
+                        raise ValueError(f"Not enough stock for medication {medication.name}.")
+                    medication.stock -= quantity_diff   #Decrease stock for new quantity
+                    medication.quantity +=quantity_diff #Increase quantity in medications table
+
+                elif quantity_diff < 0:                        #If quantity decreased, increase stock
+                    medication.quantity -= abs(quantity_diff)  #Decrease quantity in medications table
+                    medication.stock += abs(quantity_diff)     #Increase stock for reduced quantity
+
+                #Update the existing item in the order
+                existing_item.quantity = item.quantity
+                existing_item.price = medication.price
+            else:
+                #If item is new, add it to the order and adjust the stock
+                if medication.stock < item.quantity:
+                    raise ValueError(f"Not enough stock for medication {medication.name}.")
+                medication.stock -= item.quantity     #Decrease stock for new item
+                medication.quantity += item.quantity  #Increase quantity in medications table
+
+                new_order_item = OrderItemDB(
+                    order_id=db_order.id,
+                    medication_id=item.medication_id,
+                    quantity=item.quantity,
+                    price=medication.price
+                )
+                db.add(new_order_item)
+
+            #Calculate total order amount
+            total_amount += medication.price * item.quantity
+
+        #Remove items that are no longer in the updated order
+        for existing_item in existing_order_items:
+            if existing_item.medication_id not in {item.medication_id for item in order_request.order_items}:
+                medication = db.query(MedicationDB).filter_by(id=existing_item.medication_id).first()
+                medication.stock += existing_item.quantity     #Restore stock
+                medication.quantity -= existing_item.quantity  #Decrease quantity
+                db.delete(existing_item)                       #Delete the item from the order
+
+        #Update the total amount
+        db_order.total_amount = total_amount
+
+        #Commit and refresh
         db.commit()
         db.refresh(db_order)
 
@@ -92,7 +171,7 @@ class OrderRepository:
                     medication_id=item.medication_id,
                     quantity=item.quantity,
                     price=item.price
-                ) for item in order_request.order_items
+                ) for item in db_order.order_items
             ]
         )
 
@@ -176,3 +255,4 @@ class OrderRepository:
             db.commit()
             return response
         return None
+

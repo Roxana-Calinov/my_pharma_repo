@@ -3,12 +3,17 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from models import MedicationRequest, Medication, MedicationDB
 
+
 class MedicationRepository:
     def check_duplicate_medication(self, db: Session, medication_request: MedicationRequest) -> bool:
         existing_medication = db.query(MedicationDB).filter(
-            MedicationDB.price == medication_request.price,
+            MedicationDB.name == medication_request.name,
             MedicationDB.type == medication_request.type,
-            MedicationDB.pharma_id == medication_request.pharma_id
+            MedicationDB.quantity == medication_request.quantity,
+            MedicationDB.price == medication_request.price,
+            MedicationDB.pharma_id == medication_request.pharma_id,
+            MedicationDB.stock == medication_request.stock
+
         ).all()  #Get all records with coresponding criteria
 
         #Check for medications name duplicates
@@ -23,7 +28,7 @@ class MedicationRepository:
             raise HTTPException(status_code=400,
                                 detail="Medication already exists.")
 
-        db_medication = MedicationDB(**medication_request.model_dump())
+        db_medication = MedicationDB(**medication_request.model_dump(exclude={"stock_level"})) #excluding stock_level
         db.add(db_medication)
         db.commit()
         db.refresh(db_medication)
@@ -46,7 +51,7 @@ class MedicationRepository:
                                 detail="Medication already exists.")
 
         if db_medication:
-            for key, value in medication_request.model_dump().items():
+            for key, value in medication_request.model_dump(exclude={"stock_level"}).items(): #exclude stock_level
                 setattr(db_medication, key, value)
             db.commit()
             db.refresh(db_medication)

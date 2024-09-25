@@ -1,12 +1,14 @@
 """
 # pip install pydantic
 """
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy.event import listens_for
 from database import Base
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List
+
 
 # Database models
 class MedicationDB(Base):
@@ -23,6 +25,24 @@ class MedicationDB(Base):
 
     pharmacy = relationship("PharmacyDB", back_populates="medications")
     order_items = relationship("OrderItemDB", back_populates="medication")
+
+    #Stock level update
+    def update_stock_level(self):
+        if self.stock <= 100:
+            self.stock_level = 'low'
+        elif 101 <= self.stock <= 300:
+            self.stock_level = 'medium'
+        else:
+            self.stock_level = 'high'
+
+# Listener for automatic update of the stock_level
+@listens_for(MedicationDB, 'before_update')
+def before_update(mapper, connection, target):
+    target.update_stock_level()
+
+@listens_for(MedicationDB, 'before_insert')
+def before_insert(mapper, connection, target):
+    target.update_stock_level()
 
 class PharmacyDB(Base):
     __tablename__ = "pharmacies"
@@ -69,7 +89,6 @@ class MedicationRequest(BaseModel):
     price: float = Field(gt=0)
     pharma_id: int = Field(..., description="Pharma where the medication can be found")
     stock: int = Field(ge=0, description="The number of medications in stock in the warehouse")
-    stock_level: str = Field(..., description="Stock level: low, medium, high")
 
 class Medication(MedicationRequest):
     id: int
@@ -92,7 +111,6 @@ class Pharmacy(PharmacyRequest):
 class OrderItemRequest(BaseModel):
     medication_id: int
     quantity: int = Field(gt=0)
-    price: float = Field(gt=0)
 
 class OrderRequest(BaseModel):
     pharmacy_id: int
