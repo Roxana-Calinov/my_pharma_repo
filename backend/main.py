@@ -6,7 +6,7 @@ from typing import List
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
-from models import MedicationRequest, Medication, PharmacyRequest, Pharmacy, OrderRequest, OrderResponse
+from models import MedicationRequest, MedicationResponse, PharmacyRequest, Pharmacy, OrderRequest, OrderResponse
 from medications import MedicationRepository
 from pharmacies import PharmacyRepository
 from orders import OrderRepository
@@ -27,27 +27,27 @@ def get_db():
 
 
 # Medication endpoints
-@app.get("/medications", response_model=List[Medication])
+@app.get("/medications", response_model=List[MedicationResponse])
 async def get_medications(db: Session = Depends(get_db)):
     medications = medication_repo.get_all(db)
     if not medications:
         raise HTTPException(status_code=204, detail="No medications found.")
     return medications
 
-@app.get("/medications/{medication_id}", response_model=Medication)
+@app.get("/medications/{medication_id}", response_model=MedicationResponse)
 async def get_medication(medication_id: int, db: Session = Depends(get_db)):
     medication = medication_repo.get_by_id(db, medication_id)
     if medication is None:
         raise HTTPException(status_code=404, detail="Medication not found.")
     return medication
 
-@app.post("/medications", response_model=Medication)
+@app.post("/medications", response_model=MedicationResponse)
 async def create_medication(request: MedicationRequest, db: Session = Depends(get_db)):
     if not request.name or request.price is None:
         raise HTTPException(status_code=400, detail="Name and price are required.")
     return medication_repo.add(db, request)
 
-@app.put("/medications/{medication_id}", response_model=Medication)
+@app.put("/medications/{medication_id}", response_model=MedicationResponse)
 async def update_medication(medication_id: int, request: MedicationRequest, db: Session = Depends(get_db)):
     if medication_id < 1:
         raise HTTPException(status_code=400, detail="Invalid medication ID.")
@@ -58,7 +58,7 @@ async def update_medication(medication_id: int, request: MedicationRequest, db: 
         raise HTTPException(status_code=404, detail="Medication not found.")
     return medication
 
-@app.delete("/medications/{medication_id}", response_model=Medication)
+@app.delete("/medications/{medication_id}", response_model=MedicationResponse)
 async def delete_medication(medication_id: int, db: Session = Depends(get_db)):
     if medication_id < 1:
         raise HTTPException(status_code=400, detail="Invalid medication ID.")

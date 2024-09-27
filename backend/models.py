@@ -82,6 +82,7 @@ class OrderItemDB(Base):
 
 
 # Pydantic models
+#POST, PUT (exclude stock_level)
 class MedicationRequest(BaseModel):
     name: str = Field(min_length=3, max_length=50)
     type: str = Field(..., description="Medication type: RX or OTC")
@@ -90,11 +91,20 @@ class MedicationRequest(BaseModel):
     pharma_id: int = Field(..., description="Pharma where the medication can be found")
     stock: int = Field(ge=0, description="The number of medications in stock in the warehouse")
 
-class Medication(MedicationRequest):
+#GET operations (include stock_level)
+class MedicationResponse(BaseModel):
     id: int
+    name: str
+    type: str
+    quantity: int
+    price: float
+    pharma_id: int
+    stock: int
+    stock_level: str
 
     class Config:
         from_attributes = True
+
 
 class PharmacyRequest(BaseModel):
     name: str = Field(min_length=3, max_length=100)
