@@ -8,6 +8,7 @@ from database import Base
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List
+from typing import Optional
 
 
 # Database models
@@ -112,6 +113,16 @@ class PharmacyRequest(BaseModel):
     contact_phone: str
     email: str = Field(..., pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$")
 
+class PharmacyResponse(BaseModel):
+    id: int
+    name: str
+    address: str
+    contact_phone: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
 class Pharmacy(PharmacyRequest):
     id: int
 
@@ -119,11 +130,20 @@ class Pharmacy(PharmacyRequest):
         from_attributes = True
 
 class OrderItemRequest(BaseModel):
-    medication_id: int
+    medication_id: int = Field(..., description="Medication ID")
     quantity: int = Field(gt=0)
+    #price: Optional[float]
+
+class OrderItemResponse(BaseModel):
+    medication_id: int
+    quantity: int
+    price: float
+
+    class Config:
+        from_attributes = True
 
 class OrderRequest(BaseModel):
-    pharmacy_id: int
+    pharmacy_id: int = Field(..., description="Pharmacy ID")
     order_items: List[OrderItemRequest]
     status: str = Field(..., description="Order's status")
 
@@ -133,8 +153,12 @@ class OrderResponse(BaseModel):
     order_date: datetime
     status: str
     total_amount: float
-    order_items: List[OrderItemRequest]
+    order_items: List[OrderItemResponse]
 
     class Config:
         from_attributes = True
 
+
+class MedicationWithPharmacyResponse(BaseModel):
+    medication: MedicationResponse
+    pharmacy: Pharmacy

@@ -1,15 +1,18 @@
 import streamlit as st
 import pandas as pd
-from utils import get_all_medications, get_medication, create_medication, update_medication, delete_medication
+from utils import (get_all_medications, get_medication, create_medication, update_medication, delete_medication,
+                   get_medications_and_pharmacies)
 
 
 def show_medications_page():
     st.subheader("Medications: Stock & Details")
-    menu = ["View All Medications", "View Specific Medication", "Add New Medication", "Update Medication",
-            "Delete Medication"]
+    menu = ["Medications and Pharmacies", "View All Medications", "View Specific Medication", "Add New Medication",
+            "Update Medication", "Delete Medication"]
     choice = st.selectbox("Select an option", menu)
 
-    if choice == "View All Medications":
+    if choice == "Medications and Pharmacies":
+        view_pharma_and_med()
+    elif choice == "View All Medications":
         view_all_medications()
     elif choice == "View Specific Medication":
         view_medication()
@@ -66,6 +69,49 @@ def view_all_medications():
 
     #Display the DF as a table
     st.dataframe(df_medication)
+
+#Medications and Pharmacies joined
+def view_pharma_and_med():
+    st.subheader("All Structured Medications")
+    with st.spinner("Loading medications..."):
+        data = get_medications_and_pharmacies().json()
+
+    if not data:
+        st.write("There are no medications.")
+        return
+
+    if isinstance(data, list) and len(data) > 0:
+        #Create a list for table data
+        table_data = []
+
+        #Iterate throw all list items
+        for item in data:
+            medication = item['medication']
+            pharmacy = item['pharmacy']
+
+            #Create a dictionary with needed informations
+            table_data.append({
+                'id': medication['id'],
+                'name': medication['name'],
+                'type': medication['type'],
+                'quantity': medication['quantity'],
+                'price': medication['price'],
+                'stock': medication['stock'],
+                'stock_level': medication['stock_level'],
+                'pharmacy_name': pharmacy['name'],
+                'pharma_id': medication['pharma_id'],
+                'pharmacy_address': pharmacy['address'],
+                'pharmacy_contact_phone': pharmacy['contact_phone'],
+                'pharmacy_email': pharmacy['email']
+            })
+
+        #Create the DF
+        df_medications = pd.DataFrame(table_data)
+
+        st.subheader("Medication Informations with Pharmacy Details")
+        st.dataframe(df_medications)
+    else:
+        st.error("No valid data.")
 
 
 #View a specific medication by its ID

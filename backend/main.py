@@ -6,7 +6,9 @@ from typing import List
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
-from models import MedicationRequest, MedicationResponse, PharmacyRequest, Pharmacy, OrderRequest, OrderResponse
+from models import (MedicationRequest, MedicationResponse, MedicationDB, MedicationWithPharmacyResponse,
+                    PharmacyRequest, PharmacyResponse, Pharmacy, PharmacyDB,
+                    OrderRequest, OrderResponse)
 from medications import MedicationRepository
 from pharmacies import PharmacyRepository
 from orders import OrderRepository
@@ -149,4 +151,21 @@ async def delete_order(order_id: int, db: Session = Depends(get_db)):
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found.")
     return order
+
+
+@app.get("/medications_with_pharmacies", response_model=List[MedicationWithPharmacyResponse])
+def read_medications_with_pharmacies(db: Session = Depends(get_db)):
+    medications_with_pharmacies = (
+        db.query(MedicationDB, PharmacyDB)
+        .join(PharmacyDB, MedicationDB.pharma_id == PharmacyDB.id)
+        .all()
+    )
+
+    return [
+        {
+            "medication": MedicationResponse.from_orm(medication),
+            "pharmacy": PharmacyResponse.from_orm(pharmacy),
+        }
+        for medication, pharmacy in medications_with_pharmacies
+    ]
 

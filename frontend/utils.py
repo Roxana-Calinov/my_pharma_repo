@@ -82,3 +82,45 @@ def delete_pharmacy(pharmacy_id):
 
 
 #ORDERS
+def get_all_orders():
+    response = requests.get(f"{API_URL}/orders")
+    return response
+
+def get_order(order_id):
+    response = requests.get(f"{API_URL}/orders/{order_id}")
+    return response
+
+def create_order(pharmacy_id, order_items, status):
+    order_data = {
+        "pharmacy_id": pharmacy_id,
+        "order_items": order_items,
+        "status": status
+    }
+
+    response = requests.post(f"{API_URL}/orders", json=order_data)
+    return response
+
+def update_order(order_id, pharmacy_id, order_items, status):
+    order_data = {
+        "pharmacy_id": pharmacy_id,
+        "order_items": order_items,
+        "status": status
+    }
+
+    response = requests.put(f"{API_URL}/orders/{order_id}/update", json=order_data)
+    return response
+
+def update_order_status(order_id, new_status):
+    response = requests.put(f"{API_URL}/orders/{order_id}/status", params={"new_status": new_status})
+    return response
+
+
+def delete_order(order_id):
+    response = requests.delete(f"{API_URL}/orders/{order_id}")
+    return response
+
+##########
+def get_medications_and_pharmacies():
+    response = requests.get(f"{API_URL}/medications_with_pharmacies")
+
+    return response

@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from models import OrderRequest, OrderResponse, OrderDB, OrderItemDB, OrderItemRequest, MedicationDB
+from models import OrderRequest, OrderResponse, OrderDB, OrderItemDB, OrderItemResponse, MedicationDB
 
 class OrderRepository:
     def check_duplicate_order(self, db: Session, order_request: OrderRequest) -> bool:
@@ -73,10 +73,10 @@ class OrderRepository:
             status=db_order.status,
             total_amount=db_order.total_amount,
             order_items=[
-                OrderItemRequest(
+                OrderItemResponse(
                     medication_id=item.medication_id,
                     quantity=item.quantity,
-                    price=item.price
+                    price = medication_price
                 ) for item in db_order.order_items
             ]
         )
@@ -167,10 +167,10 @@ class OrderRepository:
             status=db_order.status,
             total_amount=db_order.total_amount,
             order_items=[
-                OrderItemRequest(
+                OrderItemDB(
                     medication_id=item.medication_id,
                     quantity=item.quantity,
-                    price=item.price
+                    price=medication.price
                 ) for item in db_order.order_items
             ]
         )
@@ -184,10 +184,10 @@ class OrderRepository:
             status=order.status,
             total_amount=order.total_amount,
             order_items=[
-                OrderItemRequest(
+                OrderItemResponse(
                     medication_id=item.medication_id,
                     quantity=item.quantity,
-                    price=item.price
+                    price=db.query(MedicationDB).filter_by(id=item.medication_id).first().price
                 ) for item in order.order_items
             ]
         ) for order in orders]
@@ -202,10 +202,10 @@ class OrderRepository:
                 status=db_order.status,
                 total_amount=db_order.total_amount,
                 order_items=[
-                    OrderItemRequest(
+                    OrderItemResponse(
                         medication_id=item.medication_id,
                         quantity=item.quantity,
-                        price=item.price
+                        price=db.query(MedicationDB).filter_by(id=item.medication_id).first().price
                     ) for item in db_order.order_items
                 ]
             )
@@ -225,7 +225,7 @@ class OrderRepository:
                 status=db_order.status,
                 total_amount=db_order.total_amount,
                 order_items=[
-                            OrderItemRequest(
+                            OrderItemResponse(
                                 medication_id=item.medication_id,
                                 quantity=item.quantity,
                                 price=item.price
@@ -244,7 +244,7 @@ class OrderRepository:
                 status=db_order.status,
                 total_amount=db_order.total_amount,
                 order_items=[
-                            OrderItemRequest(
+                            OrderItemResponse(
                                 medication_id=item.medication_id,
                                 quantity=item.quantity,
                                 price=item.price
