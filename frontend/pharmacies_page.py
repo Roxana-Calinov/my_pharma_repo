@@ -24,7 +24,7 @@ def show_pharmacies_page():
         init_delete_pharmacy()
 
 
-# Function to display all pharmacies
+#Display all pharmacies
 def view_all_pharmacies():
     st.subheader("All Pharmacies")
     #Fetch pharmacies from backend
@@ -48,7 +48,7 @@ def view_all_pharmacies():
         st.dataframe(df)
 
 
-# Function to view a specific pharmacy
+#Display a specific pharmacy
 def view_pharmacy():
     st.subheader("View Pharmacy Details")
     st.write("Enter the id of the pharmacy to display its details.")
@@ -78,7 +78,7 @@ def view_pharmacy():
             st.error(f"Pharmacy with ID {pharmacy_id} not found.")
 
 
-# Function to add a new pharmacy
+#Add a new pharma
 def add_pharmacy():
     st.subheader("Add New Pharmacy")
     st.write("Fill in the details below to add a new pharmacy to the system.")
@@ -124,11 +124,10 @@ def add_pharmacy():
         else:
             st.error("All fields must be filled in.")
 
-# Function to update an existing pharmacy
+#Update pharma
 def init_update_pharmacy():
     st.subheader("Update Pharmacy")
     st.write("Enter the pharmacy ID and update details below.")
-
 
     pharmacy_id = st.number_input("Pharmacy ID",
                                   min_value=1,
@@ -166,7 +165,7 @@ def init_update_pharmacy():
         else:
             st.error("All fields must be filled in.")
 
-# Function to delete a pharmacy
+#Delete pharma
 def init_delete_pharmacy():
     st.subheader("Delete Pharmacy")
     pharmacy_id = st.number_input("Pharmacy ID", min_value=1)

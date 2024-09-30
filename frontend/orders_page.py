@@ -33,10 +33,10 @@ def view_all_orders():
         st.write("There are no orders.")
         return
 
-    # Convert orders to DataFrame
+    #Convert orders to DF
     df_order = pd.DataFrame(orders)
 
-    # Convert order_items to string representation
+    #Convert order_items to string representation
     df_order['order_items'] = df_order['order_items'].apply(lambda items: ', '.join(
         [f"Medication ID: {item['medication_id']}, Quantity: {item['quantity']}, Price: {item['price']}" for item in items]
     ))
@@ -68,7 +68,7 @@ def view_order():
             st.write(f"**Status**: {order_json['status']}")
             st.write(f"**Total Amount**: {order_json['total_amount']}")
 
-            # Extract and display order items
+            #Extract and display order items
             order_items = order_json['order_items']  # Extract order_items
             st.write("**Order Items:**")
             for item in order_items:
@@ -76,7 +76,7 @@ def view_order():
                     f"- Medication ID: {item['medication_id']}, Quantity: {item['quantity']}, Price: {item['price']}"
                 )
         else:
-            # Display an error message if the order is not found
+            #Display an error if the order is not found
             st.error(f"Order with ID {order_id} not found.")
 
 
@@ -88,7 +88,7 @@ def add_order():
     if 'order_items' not in st.session_state:
         st.session_state['order_items'] = []
 
-    # Collect order items (outside the form)
+    #Collect order items (outside the form)
     with st.expander("Add Medication"):
         medication_id = st.number_input("Medication ID", min_value=1, step=1, help="Enter the medication ID.")
         quantity = st.number_input("Medication order quantity", min_value=1, step=1,
@@ -97,7 +97,7 @@ def add_order():
             st.session_state['order_items'].append({"medication_id": medication_id, "quantity": quantity})
             st.success(f"Added medication {medication_id} with quantity {quantity}")
 
-    # Display current order items
+    #Display current order items
     if st.session_state['order_items']:
         st.write("Current Order Items:")
         for item in st.session_state['order_items']:
@@ -122,7 +122,7 @@ def add_order():
             else:
                 st.error("Failed to add order. Please try again.")
 
-# Validate order input
+#Validate order input
 def validate_order_input(pharmacy_id, order_items, status):
     if not all([pharmacy_id, order_items, status]) or len(order_items) == 0:
         return False, "Invalid data."
@@ -137,22 +137,22 @@ def init_update_order():
     if 'order_items' not in st.session_state:
         st.session_state['order_items'] = []
 
-    # Form for updating order details
+    #Form for updating order details
     with st.form(key='update_order_form'):
         order_id = st.number_input("Order ID", min_value=1, step=1, help="Enter the order ID you want to update.")
         pharmacy_id = st.number_input("Pharmacy ID", min_value=1, step=1, help="Enter the pharmacy ID.")
 
-        # Display current order items
+        #Display current order items
         st.write("Order Items to Update:")
         for item in st.session_state['order_items']:
             st.write(f"Medication ID: {item['medication_id']}, Quantity: {item['quantity']}")
 
         status = st.selectbox("Order Status", ["pending", "loading", "delivered"],
                               help="Choose the status of the order")
-        # Submit button
+        #Submit button
         submit_button = st.form_submit_button(label="Update Order")
 
-    # Collect order items (outside the form)
+    #Collect order items (outside the form)
     with st.expander("Update Medication Quantity"):
         medication_id = st.number_input("Medication ID", min_value=1, step=1, help="Enter the medication ID.")
         quantity = st.number_input("Medication order quantity", min_value=1, step=1,
@@ -161,22 +161,22 @@ def init_update_order():
             st.session_state['order_items'].append({"medication_id": medication_id, "quantity": quantity})
             st.success(f"Updated medication {medication_id} with quantity {quantity}")
 
-    # Action on form submission
+    #Action on form submission
     if submit_button:
         valid, message = validate_order_input(pharmacy_id, st.session_state['order_items'], status)
         if not valid:
             st.error(message)
         else:
-            # Update the order instead of creating a new one
+            #Update the order instead of creating a new one
             result = update_order(order_id, pharmacy_id, st.session_state['order_items'], status)
             if result.status_code == 200:
                 st.success(f"Order updated successfully with ID: {order_id}")
-                st.session_state['order_items'] = []  # Clear the items after a successful update
+                st.session_state['order_items'] = []  #Clear the items after a successful update
             else:
                 st.error("Failed to update order. Please try again.")
 
 
-# Update order status
+#Update order status
 def init_update_order_status():
     st.subheader("Update Order Status")
     st.write("Enter the order ID and the new status below.")
@@ -209,15 +209,15 @@ def init_delete_order():
     st.subheader("Delete Order")
     st.write("Enter the order ID you want to delete below.")
 
-    # Form for deleting an order
+    #Form for deleting an order
     with st.form(key='delete_order_form'):
         order_id = st.number_input("Order ID", min_value=1, step=1,
                                    help="Enter the ID of the order you want to delete.")
 
-        # Submit button
+        #Submit button
         submit_button = st.form_submit_button(label="Delete Order")
 
-    # Action on form submission
+    #Action on form submission
     if submit_button:
         result = delete_order(order_id)
         if result.status_code == 200:

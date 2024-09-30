@@ -1,8 +1,9 @@
 """
+FASTAPI: Pharma Stock API
 To run the app, in terminal: uvicorn main:app --reload
 """
-from fastapi import FastAPI, HTTPException, Depends
-from typing import List
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
@@ -12,14 +13,19 @@ from models import (MedicationRequest, MedicationResponse, MedicationDB, Medicat
 from medications import MedicationRepository
 from pharmacies import PharmacyRepository
 from orders import OrderRepository
+import base64
 
-models.Base.metadata.create_all(bind=engine)
+
+models.Base.metadata.create_all(bind=engine)    #Create DB tables
 
 app = FastAPI(debug=True, title="Pharma Stock API", version="1.0")
+
+#Repositories
 medication_repo = MedicationRepository()
 pharmacy_repo = PharmacyRepository()
 order_repo = OrderRepository()
 
+#DB session
 def get_db():
     db = SessionLocal()
     try:
@@ -28,7 +34,7 @@ def get_db():
         db.close()
 
 
-# Medication endpoints
+#Medication endpoints
 @app.get("/medications", response_model=List[MedicationResponse])
 async def get_medications(db: Session = Depends(get_db)):
     medications = medication_repo.get_all(db)
@@ -44,18 +50,79 @@ async def get_medication(medication_id: int, db: Session = Depends(get_db)):
     return medication
 
 @app.post("/medications", response_model=MedicationResponse)
-async def create_medication(request: MedicationRequest, db: Session = Depends(get_db)):
+async def create_medication(
+    name: str = Form(...),
+    type: str = Form(...),
+    quantity: int = Form(...),
+    price: float = Form(...),
+    pharma_id: int = Form(...),
+    stock: int = Form(...),
+    image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
+    request = MedicationRequest(
+        name=name,
+        type=type,
+        quantity=quantity,
+        price=price,
+        pharma_id=pharma_id,
+        stock=stock
+    )
+
+    if image:
+        if image.content_type not in ["image/jpeg", "image/jpg", "image/png"]:
+            raise HTTPException(status_code=400, detail="Invalid file type. Only JPG, JPEG and PNG are allowed.")
+
+        #Read the content of the image and encodes it in base64
+        image_bytes = await image.read()                              #Read image as bytes
+        image_base64 = base64.b64encode(image_bytes).decode('utf-8')  #Code it in Base64 and convert to string
+
+        request.image = image_base64                                  #Assigns the Base64 encoded string in the request
+
     if not request.name or request.price is None:
         raise HTTPException(status_code=400, detail="Name and price are required.")
+
     return medication_repo.add(db, request)
 
+
+
 @app.put("/medications/{medication_id}", response_model=MedicationResponse)
-async def update_medication(medication_id: int, request: MedicationRequest, db: Session = Depends(get_db)):
+async def update_medication(
+    medication_id: int,
+    name: str = Form(...),
+    type: str = Form(...),
+    quantity: int = Form(...),
+    price: float = Form(...),
+    pharma_id: int = Form(...),
+    stock: int = Form(...),
+    image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
     if medication_id < 1:
         raise HTTPException(status_code=400, detail="Invalid medication ID.")
+
+    request = MedicationRequest(
+        name=name,
+        type=type,
+        quantity=quantity,
+        price=price,
+        pharma_id=pharma_id,
+        stock=stock
+    )
+
+    if image:
+        if image.content_type not in ["image/jpeg", "image/jpg", "image/png"]:
+            raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG and PNG are allowed.")
+
+        image_bytes = await image.read()
+        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+        request.image = image_base64
+
     if not request.name and request.price is None:
         raise HTTPException(status_code=400, detail="At least one field must be updated.")
+
     medication = medication_repo.update(db, medication_id, request)
+
     if medication is None:
         raise HTTPException(status_code=404, detail="Medication not found.")
     return medication
@@ -70,7 +137,7 @@ async def delete_medication(medication_id: int, db: Session = Depends(get_db)):
     return medication
 
 
-# Pharmacy endpoints
+#Pharmacy endpoints
 @app.post("/pharmacies", response_model=Pharmacy)
 async def create_pharmacy(request: PharmacyRequest, db: Session = Depends(get_db)):
     if pharmacy_repo.check_duplicate_pharmacy(db, request):
@@ -105,7 +172,7 @@ async def delete_pharmacy(pharmacy_id: int, db: Session = Depends(get_db)):
     return pharmacy
 
 
-# Order endpoints
+#Order endpoints
 @app.post("/orders", response_model=OrderResponse)
 async def create_order(request: OrderRequest, db: Session = Depends(get_db)):
     if order_repo.check_duplicate_order(db, request):
@@ -155,6 +222,7 @@ async def delete_order(order_id: int, db: Session = Depends(get_db)):
 
 @app.get("/medications_with_pharmacies", response_model=List[MedicationWithPharmacyResponse])
 def read_medications_with_pharmacies(db: Session = Depends(get_db)):
+    #Join for getting medications and pharmacies data
     medications_with_pharmacies = (
         db.query(MedicationDB, PharmacyDB)
         .join(PharmacyDB, MedicationDB.pharma_id == PharmacyDB.id)

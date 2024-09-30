@@ -1,7 +1,18 @@
 import streamlit as st
 import pandas as pd
+import base64
+from PIL import Image
 from utils import (get_all_medications, get_medication, create_medication, update_medication, delete_medication,
-                   get_medications_and_pharmacies)
+                   get_medications_and_pharmacies, decode_base64_to_image)
+
+
+def convert_image_to_base64(uploaded_file):
+    if uploaded_file is not None:
+        # Read the uploaded file as bytes
+        file_bytes = uploaded_file.read()
+        # Convert bytes to base64
+        return base64.b64encode(file_bytes).decode('utf-8')
+    return None
 
 
 def show_medications_page():
@@ -70,27 +81,26 @@ def view_all_medications():
     #Display the DF as a table
     st.dataframe(df_medication)
 
+
 #Medications and Pharmacies joined
 def view_pharma_and_med():
-    st.subheader("All Structured Medications")
+    IMAGE_WIDTH = 200
+    IMAGE_HEIGHT = 150
+
+    st.subheader("Medications With Images")
     with st.spinner("Loading medications..."):
-        data = get_medications_and_pharmacies().json()
+        response = get_medications_and_pharmacies()
 
-    if not data:
-        st.write("There are no medications.")
-        return
+    if response.status_code == 200:
+        data = response.json()
+        all_medications = []
+        valid_image_meds = []
 
-    if isinstance(data, list) and len(data) > 0:
-        #Create a list for table data
-        table_data = []
-
-        #Iterate throw all list items
         for item in data:
             medication = item['medication']
             pharmacy = item['pharmacy']
 
-            #Create a dictionary with needed informations
-            table_data.append({
+            med_data = {
                 'id': medication['id'],
                 'name': medication['name'],
                 'type': medication['type'],
@@ -103,13 +113,39 @@ def view_pharma_and_med():
                 'pharmacy_address': pharmacy['address'],
                 'pharmacy_contact_phone': pharmacy['contact_phone'],
                 'pharmacy_email': pharmacy['email']
-            })
+            }
+            all_medications.append(med_data)
 
-        #Create the DF
-        df_medications = pd.DataFrame(table_data)
+            if medication.get('image'):
+                image = decode_base64_to_image(medication['image'])
+                if image:
+                    image = image.resize((IMAGE_WIDTH, IMAGE_HEIGHT))
+                    med_data_with_image = med_data.copy()
+                    med_data_with_image['image'] = image
+                    valid_image_meds.append(med_data_with_image)
 
-        st.subheader("Medication Informations with Pharmacy Details")
-        st.dataframe(df_medications)
+        #Display medications with images
+        if valid_image_meds:
+            num_cols = 3
+            cols = st.columns(num_cols)
+
+            for index, med_data in enumerate(valid_image_meds):
+                col = cols[index % num_cols]
+                with col:
+                    st.write(f"**{med_data['name']}** ({med_data['type']})")
+                    st.write(f"Price: {med_data['price']} RON")
+                    st.write(f"Quantity: {med_data['quantity']}")
+                    st.write(f"Pharmacy: {med_data['pharmacy_name']}")
+                    st.write(f"Stock: {med_data['stock']} ({med_data['stock_level']})")
+                    st.image(med_data['image'], caption=med_data['name'], use_column_width=True)
+                    st.write("---")
+        else:
+            st.info("No medications with valid images found.")
+
+        #All medications
+        st.subheader("All Medications Information")
+        df_all_medications = pd.DataFrame(all_medications)
+        st.dataframe(df_all_medications)
     else:
         st.error("No valid data.")
 
@@ -148,7 +184,6 @@ def add_medication():
     st.subheader("Add New Medication")
     st.write("Fill in the details below to add a new medication to the system.")
 
-    #Form for medication input
     with st.form(key='add_medication_form'):
         name = st.text_input("Medication Name", help="Enter the name of the medication.", placeholder="Medication Name")
         type = st.selectbox("Type", ["RX", "OTC"], help="Enter the medication's type", placeholder="RX or OTC")
@@ -159,27 +194,30 @@ def add_medication():
         pharma_id = st.number_input("Pharma ID", min_value=1, step=1,
                                     help="Enter the id of the pharmacy where the medication can be found")
         stock = st.number_input("Stock", min_value=1, step=1, help="Enter the available stock quantity.")
+        image = st.file_uploader("Upload Image (JPG/JPEG/PNG)", type=["jpg", "jpeg", "png"])
 
-        #Submit button
         submit_button = st.form_submit_button(label="Add Medication", use_container_width=True)
 
-    #Action on form submission
     if submit_button:
-        valid, message = validate_medication_input(name, type, pharma_id, stock, quantity, price)
+        valid, message = validate_medication_input(name, type, pharma_id, stock, quantity, price, image)
+
         if not valid:
             st.error(message)
         else:
-            result = create_medication(name, type, quantity, price, pharma_id, stock)
-            if result.status_code == 200:
-                st.success(f"Medication '{name}' added successfully with ID: {result.json()['id']}")
+            result = create_medication(name, type, quantity, price, pharma_id, stock, image)
+            if result:
+                st.success("Medication added successfully!")
             else:
-                st.error("Failed to add medication. Please try again.")
+                st.error("An error occurred while adding the medication.")
+
 
 
 #Validate medication input
-def validate_medication_input(name, type, pharma_id, stock, quantity, price):
+def validate_medication_input(name, type, pharma_id, stock, quantity, price, image):
     if not all([name, type, pharma_id]) or stock < 1 or quantity < 1 or price < 0.5:
         return False, "All fields must be filled in with valid data."
+    if image is None:
+        return False, "You must upload an image of the medication."
     return True, ""
 
 
@@ -188,7 +226,7 @@ def init_update_medication():
     st.subheader("Update Medication")
     st.write("Enter the medication ID and updated details below.")
 
-    # Form for updating medication details
+    #Form for updating medication
     with st.form(key='update_medication_form'):
         medication_id = st.number_input("Medication ID", min_value=1, step=1,
                                         help="Enter the ID of the medication you want to update.")
@@ -202,18 +240,20 @@ def init_update_medication():
         pharma_id = st.number_input("Pharma ID", min_value=1, step=1,
                                     help="Enter the id of the pharmacy where the medication can be found")
         stock = st.number_input("Stock", min_value=1, step=1, help="Enter the available stock quantity.")
+        image = st.file_uploader("Upload New Image (JPG/JPEG/PNG)", type=["jpg", "jpeg", "png"])
 
         #Submit button
         submit_button = st.form_submit_button(label="Update Medication")
 
     #Action on form submission
     if submit_button:
-        valid, message = validate_medication_input(name, type, pharma_id, stock, quantity, price)
+        valid, message = validate_medication_input(name, type, pharma_id, stock, quantity, price, image)
+
         if not valid:
             st.error(message)
         else:
-            result = update_medication(medication_id, name, type, quantity, price, pharma_id, stock)
-            if result.status_code == 200:
+            result = update_medication(medication_id, name, type, quantity, price, pharma_id, stock, image)
+            if result:
                 st.success(f"Medication with ID {medication_id} updated successfully.")
             else:
                 st.error("Medication not found or failed to update. Please try again.")
@@ -242,4 +282,5 @@ def init_delete_medication():
                 st.success(f"Medication with ID {medication_id} deleted successfully.")
             else:
                 st.error("Medication not found or failed to delete. Please try again.")
+
 

@@ -1,7 +1,7 @@
 """
 # pip install pydantic
 """
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.event import listens_for
 from database import Base
@@ -11,7 +11,7 @@ from typing import List
 from typing import Optional
 
 
-# Database models
+#Database models
 class MedicationDB(Base):
     __tablename__ = "medications"
 
@@ -23,6 +23,7 @@ class MedicationDB(Base):
     pharma_id = Column(Integer, ForeignKey("pharmacies.id"), index=True)
     stock = Column(Integer, index=True)
     stock_level = Column(String, index=True)
+    image = Column(Text, nullable=True)
 
     pharmacy = relationship("PharmacyDB", back_populates="medications")
     order_items = relationship("OrderItemDB", back_populates="medication")
@@ -36,7 +37,7 @@ class MedicationDB(Base):
         else:
             self.stock_level = 'high'
 
-# Listener for automatic update of the stock_level
+#Listener for automatic update of the stock_level
 @listens_for(MedicationDB, 'before_update')
 def before_update(mapper, connection, target):
     target.update_stock_level()
@@ -82,7 +83,7 @@ class OrderItemDB(Base):
     medication = relationship("MedicationDB", back_populates="order_items")
 
 
-# Pydantic models
+#Pydantic models
 #POST, PUT (exclude stock_level)
 class MedicationRequest(BaseModel):
     name: str = Field(min_length=3, max_length=50)
@@ -91,6 +92,7 @@ class MedicationRequest(BaseModel):
     price: float = Field(gt=0)
     pharma_id: int = Field(..., description="Pharma where the medication can be found")
     stock: int = Field(ge=0, description="The number of medications in stock in the warehouse")
+    image: Optional[str] = None
 
 #GET operations (include stock_level)
 class MedicationResponse(BaseModel):
@@ -102,6 +104,7 @@ class MedicationResponse(BaseModel):
     pharma_id: int
     stock: int
     stock_level: str
+    image: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -132,7 +135,6 @@ class Pharmacy(PharmacyRequest):
 class OrderItemRequest(BaseModel):
     medication_id: int = Field(..., description="Medication ID")
     quantity: int = Field(gt=0)
-    #price: Optional[float]
 
 class OrderItemResponse(BaseModel):
     medication_id: int

@@ -1,9 +1,32 @@
 import requests
+import streamlit as st
 import os
 from dotenv import load_dotenv
+import logging
+import base64
+from io import BytesIO
+from PIL import Image
+
 
 load_dotenv()
 API_URL = os.getenv("API_URL")
+
+
+def convert_image_to_base64(uploaded_file):
+    if uploaded_file is not None:
+        image_bytes = uploaded_file.read()                      #Read the uploaded file as bytes
+        return base64.b64encode(image_bytes).decode('utf-8')    #Convert bytes to base64
+    return None
+
+
+def decode_base64_to_image(base64_string):
+    """Convert a base64 string to a PIL Image."""
+    try:
+        image_data = base64.b64decode(base64_string)
+        return Image.open(BytesIO(image_data))
+    except Exception as e:
+        logging.error(f"Error decoding base64 string: {e}")
+        return None
 
 
 #functiile care fac call la FastAPI-ul meu
@@ -16,7 +39,8 @@ def get_medication(medication_id):
     response = requests.get(f"{API_URL}/medications/{medication_id}")
     return response
 
-def create_medication(name, type, quantity, price, pharma_id, stock):
+
+def create_medication(name, type, quantity, price, pharma_id, stock, uploaded_file):
     medication_data = {
         "name": name,
         "type": type,
@@ -26,10 +50,22 @@ def create_medication(name, type, quantity, price, pharma_id, stock):
         "stock": stock
     }
 
-    response = requests.post(f"{API_URL}/medications", json=medication_data)
-    return response
+    files = {}
+    if uploaded_file is not None:
+        files["image"] = ("image.jpg", uploaded_file.getvalue(), uploaded_file.type)
 
-def update_medication(medication_id, name, type, quantity, price, pharma_id, stock):
+    try:
+        response = requests.post(f"{API_URL}/medications", data=medication_data, files=files)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        return response.json()  # Return the response data if needed
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP error occurred: {e.response.text}")  # Print server response for more context
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+    return None  # Or return a specific error message
+
+
+def update_medication(medication_id, name, type, quantity, price, pharma_id, stock, uploaded_file):
     medication_data = {
         "name": name,
         "type": type,
@@ -38,8 +74,20 @@ def update_medication(medication_id, name, type, quantity, price, pharma_id, sto
         "pharma_id": pharma_id,
         "stock": stock
     }
-    response = requests.put(f"{API_URL}/medications/{medication_id}", json=medication_data)
-    return response
+
+    files = {}
+    if uploaded_file is not None:
+        files["image"] = ("image.jpg", uploaded_file.getvalue(), uploaded_file.type)
+
+    try:
+        response = requests.put(f"{API_URL}/medications/{medication_id}", data=medication_data, files=files)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        return response.json()  # Return the response data if needed
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP error occurred: {e.response.text}")  # Print server response for more context
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+    return None  # Or return a specific error message
 
 def delete_medication(medication_id):
     response = requests.delete(f"{API_URL}/medications/{medication_id}")
@@ -98,6 +146,8 @@ def create_order(pharmacy_id, order_items, status):
     }
 
     response = requests.post(f"{API_URL}/orders", json=order_data)
+    if response.status_code != 200:
+        st.write(f"API Response: {response.json()}")  # Print the error response for debugging
     return response
 
 def update_order(order_id, pharmacy_id, order_items, status):
@@ -119,8 +169,17 @@ def delete_order(order_id):
     response = requests.delete(f"{API_URL}/orders/{order_id}")
     return response
 
-##########
+
 def get_medications_and_pharmacies():
     response = requests.get(f"{API_URL}/medications_with_pharmacies")
-
+    if response.status_code == 200:
+        data = response.json()
+        for item in data:
+            if 'image' in item['medication'] and item['medication']['image']:
+                # Convert base64 image to PIL Image
+                decoded_image = decode_base64_to_image(item['medication']['image'])
+                if decoded_image:
+                    item['medication']['image'] = decoded_image
+                else:
+                    item['medication']['image'] = None  # Set to None if decoding fails
     return response

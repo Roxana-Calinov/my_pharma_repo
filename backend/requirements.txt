@@ -5,3 +5,5 @@ sqlalchemy
 psycopg2-binary
 alembic
 python-dotenv
+Pillow #image process
+python-multipart #manage uploaded files

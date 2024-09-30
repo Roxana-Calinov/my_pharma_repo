@@ -2,6 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from models import MedicationRequest, MedicationResponse, MedicationDB
+import base64
 
 
 class MedicationRepository:
@@ -25,8 +26,7 @@ class MedicationRepository:
 
     def add(self, db: Session, medication_request: MedicationRequest) -> MedicationResponse:
         if self.check_duplicate_medication(db, medication_request):
-            raise HTTPException(status_code=400,
-                                detail="Medication already exists.")
+            raise HTTPException(status_code=400, detail="Medication already exists.")
 
         db_medication = MedicationDB(**medication_request.model_dump())
         db.add(db_medication)
@@ -65,4 +65,13 @@ class MedicationRepository:
             db.commit()
             return MedicationResponse.model_validate(db_medication)
         return None
+
+    #Get binary data of the image, convert the binary data to base64, convert the base64 output to a string
+    @staticmethod
+    def encode_image(image_data: bytes) -> str:
+        return base64.b64encode(image_data).decode('utf-8')
+
+    @staticmethod
+    def decode_image(base64_string: str) -> bytes:
+        return base64.b64decode(base64_string)
 

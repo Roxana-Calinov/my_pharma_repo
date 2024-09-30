@@ -17,7 +17,6 @@ import os
 load_dotenv()
 image_path = os.getenv("IMAGE_PATH")
 
-
 st.image(image_path, use_column_width=True)
 
 #Sidebar for navigation
@@ -29,7 +28,7 @@ st.title("🏥 SmartPharma Stock")
 menu = ["🏠 Main page", "💊 Medications", "⚕️ Pharmacies", "📋 Orders"]
 choice = st.sidebar.selectbox("Choose an page:", menu)
 
-#Medications
+
 if choice == "💊 Medications":
     show_medications_page()
 elif choice == "⚕️ Pharmacies":
