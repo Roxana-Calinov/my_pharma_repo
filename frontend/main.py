@@ -13,27 +13,67 @@ from dotenv import load_dotenv
 import os
 
 
-#Load environment variables
-load_dotenv()
-image_path = os.getenv("IMAGE_PATH")
-
-st.image(image_path, use_column_width=True)
-
-#Sidebar for navigation
-st.sidebar.title("🏥 SmartPharma Stock Dashboard")
-st.title("🏥 SmartPharma Stock")
+#Menu options
+menu_pages = [
+    "🏠 Main page",
+    "💊 Medications",
+    "⚕️ Pharmacies",
+    "📋 Orders"
+]
 
 
-#Menu options for the user
-menu = ["🏠 Main page", "💊 Medications", "⚕️ Pharmacies", "📋 Orders"]
-choice = st.sidebar.selectbox("Choose an page:", menu)
+def load_env_variables():
+    """
+    Load environment variables from .env file
+    """
+    load_dotenv()
 
 
-if choice == "💊 Medications":
-    show_medications_page()
-elif choice == "⚕️ Pharmacies":
-    show_pharmacies_page()
-elif choice == "📋 Orders":
-    show_orders_page()
+def cover_image():
+    """
+    Set cover image
+    """
+    image_path = os.getenv("IMAGE_PATH")
+    return image_path
 
-calendar = st.sidebar.date_input("Select a date", datetime.now())
+def display_sidebar():
+    """
+    Display sidebar
+    """
+    st.sidebar.title("🏥 SmartPharma Stock Dashboard")
+    return st.sidebar.selectbox("Select the page below:", menu_pages)
+
+
+def show_main_page():
+    """
+    Display main page content
+    """
+    st.header("Welcome to SmartPharma Stock!")
+    st.write("This application allows you to manage medications, pharmacies, and orders")
+    st.write("Use the sidebar to navigate to different sections.")
+
+
+def main():
+    image_path = cover_image()
+    st.image(image_path, use_column_width=True)
+
+    st.title("🏥 SmartPharma Stock")
+
+    #Display sidebar
+    choice = display_sidebar()
+
+    #Go to choosen page
+    if (choice == "🏠 Main page"):
+        show_main_page()
+    elif (choice == "💊 Medications"):
+        show_medications_page()
+    elif choice == "⚕️ Pharmacies":
+        show_pharmacies_page()
+    elif choice == "📋 Orders":
+        show_orders_page()
+
+    calendar = st.sidebar.date_input("Select a date", datetime.now())
+
+
+if __name__ == "__main__":
+    main()

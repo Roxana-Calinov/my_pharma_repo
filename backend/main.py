@@ -16,14 +16,15 @@ from orders import OrderRepository
 import base64
 
 
-models.Base.metadata.create_all(bind=engine)    #Create DB tables
+models.Base.metadata.create_all(bind=engine)                            #Create DB tables
+app = FastAPI(debug=True, title="Pharma Stock API", version="1.0")      #Initialize FastAPI app
 
-app = FastAPI(debug=True, title="Pharma Stock API", version="1.0")
 
 #Repositories
 medication_repo = MedicationRepository()
 pharmacy_repo = PharmacyRepository()
 order_repo = OrderRepository()
+
 
 #DB session
 def get_db():
@@ -39,8 +40,9 @@ def get_db():
 async def get_medications(db: Session = Depends(get_db)):
     medications = medication_repo.get_all(db)
     if not medications:
-        raise HTTPException(status_code=204, detail="No medications found.")
+        raise HTTPException(status_code=404, detail="No medications found.")
     return medications
+
 
 @app.get("/medications/{medication_id}", response_model=MedicationResponse)
 async def get_medication(medication_id: int, db: Session = Depends(get_db)):
@@ -48,6 +50,7 @@ async def get_medication(medication_id: int, db: Session = Depends(get_db)):
     if medication is None:
         raise HTTPException(status_code=404, detail="Medication not found.")
     return medication
+
 
 @app.post("/medications", response_model=MedicationResponse)
 async def create_medication(
@@ -70,20 +73,29 @@ async def create_medication(
     )
 
     if image:
-        if image.content_type not in ["image/jpeg", "image/jpg", "image/png"]:
-            raise HTTPException(status_code=400, detail="Invalid file type. Only JPG, JPEG and PNG are allowed.")
+        validate_image(image)
+        request.image = await process_image(image)
 
-        #Read the content of the image and encodes it in base64
-        image_bytes = await image.read()                              #Read image as bytes
-        image_base64 = base64.b64encode(image_bytes).decode('utf-8')  #Code it in Base64 and convert to string
-
-        request.image = image_base64                                  #Assigns the Base64 encoded string in the request
-
+    #Input validation
     if not request.name or request.price is None:
         raise HTTPException(status_code=400, detail="Name and price are required.")
 
     return medication_repo.add(db, request)
 
+
+def validate_image(image: UploadFile):
+    if image.content_type not in ["image/jpeg", "image/jpg", "image/png"]:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only JPG, JPEG, and PNG are allowed.")
+
+
+async def process_image(image: UploadFile) -> str:
+    if image:
+        #Read and encode the image to base64.
+        image_bytes = await image.read()
+        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+        return image_base64
+    else:
+        return None
 
 
 @app.put("/medications/{medication_id}", response_model=MedicationResponse)
@@ -111,15 +123,8 @@ async def update_medication(
     )
 
     if image:
-        if image.content_type not in ["image/jpeg", "image/jpg", "image/png"]:
-            raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG and PNG are allowed.")
-
-        image_bytes = await image.read()
-        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-        request.image = image_base64
-
-    if not request.name and request.price is None:
-        raise HTTPException(status_code=400, detail="At least one field must be updated.")
+        validate_image(image)
+        request.image = await process_image(image)
 
     medication = medication_repo.update(db, medication_id, request)
 
@@ -127,11 +132,14 @@ async def update_medication(
         raise HTTPException(status_code=404, detail="Medication not found.")
     return medication
 
+
 @app.delete("/medications/{medication_id}", response_model=MedicationResponse)
 async def delete_medication(medication_id: int, db: Session = Depends(get_db)):
     if medication_id < 1:
         raise HTTPException(status_code=400, detail="Invalid medication ID.")
+
     medication = medication_repo.delete(db, medication_id)
+
     if medication is None:
         raise HTTPException(status_code=404, detail="Medication not found.")
     return medication
@@ -144,9 +152,11 @@ async def create_pharmacy(request: PharmacyRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=400, detail="Pharmacy already exists.")
     return pharmacy_repo.add(db, request)
 
+
 @app.get("/pharmacies", response_model=List[Pharmacy])
 async def get_pharmacies(db: Session = Depends(get_db)):
     return pharmacy_repo.get_all(db)
+
 
 @app.get("/pharmacies/{pharmacy_id}", response_model=Pharmacy)
 async def get_pharmacy(pharmacy_id: int, db: Session = Depends(get_db)):
@@ -154,6 +164,7 @@ async def get_pharmacy(pharmacy_id: int, db: Session = Depends(get_db)):
     if pharmacy is None:
         raise HTTPException(status_code=404, detail="Pharmacy not found.")
     return pharmacy
+
 
 @app.put("/pharmacies/{pharmacy_id}", response_model=Pharmacy)
 async def update_pharmacy(pharmacy_id: int, request: PharmacyRequest, db: Session = Depends(get_db)):
@@ -163,6 +174,7 @@ async def update_pharmacy(pharmacy_id: int, request: PharmacyRequest, db: Sessio
     if pharmacy is None:
         raise HTTPException(status_code=404, detail="Pharmacy not found.")
     return pharmacy
+
 
 @app.delete("/pharmacies/{pharmacy_id}", response_model=Pharmacy)
 async def delete_pharmacy(pharmacy_id: int, db: Session = Depends(get_db)):
@@ -179,9 +191,11 @@ async def create_order(request: OrderRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Order already exists.")
     return order_repo.add(db, request)
 
+
 @app.get("/orders", response_model=List[OrderResponse])
 async def get_orders(db: Session = Depends(get_db)):
     return order_repo.get_all(db)
+
 
 @app.get("/orders/{order_id}", response_model=OrderResponse)
 async def get_order(order_id: int, db: Session = Depends(get_db)):
@@ -189,6 +203,7 @@ async def get_order(order_id: int, db: Session = Depends(get_db)):
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found.")
     return order
+
 
 @app.put("/orders/{order_id}/update", response_model=OrderResponse)
 async def update_order(order_id: int, request: OrderRequest, db: Session = Depends(get_db)):
@@ -205,12 +220,14 @@ async def update_order(order_id: int, request: OrderRequest, db: Session = Depen
         #Other errors:
         raise HTTPException(status_code=500, detail="Something went wrong.")
 
+
 @app.put("/orders/{order_id}/status", response_model=OrderResponse)
 async def update_order_status(order_id: int, new_status: str, db: Session = Depends(get_db)):
     order = order_repo.update_status(db, order_id, new_status)
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found.")
     return order
+
 
 @app.delete("/orders/{order_id}", response_model=OrderResponse)
 async def delete_order(order_id: int, db: Session = Depends(get_db)):
@@ -220,12 +237,13 @@ async def delete_order(order_id: int, db: Session = Depends(get_db)):
     return order
 
 
+#Join medications and pharma data
 @app.get("/medications_with_pharmacies", response_model=List[MedicationWithPharmacyResponse])
 def read_medications_with_pharmacies(db: Session = Depends(get_db)):
     #Join for getting medications and pharmacies data
     medications_with_pharmacies = (
         db.query(MedicationDB, PharmacyDB)
-        .join(PharmacyDB, MedicationDB.pharma_id == PharmacyDB.id)
+        .outerjoin(PharmacyDB, MedicationDB.pharma_id == PharmacyDB.id)
         .all()
     )
 

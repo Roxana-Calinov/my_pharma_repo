@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils import get_all_orders, get_order, create_order, update_order, update_order_status, delete_order
+from utils import get_all_orders, get_order, create_order, update_order, update_order_status, delete_order, OrderStatus
 
 
 def show_orders_page():
@@ -105,7 +105,8 @@ def add_order():
 
     with st.form(key='add_order_form'):
         pharmacy_id = st.number_input("Pharmacy ID", min_value=1, step=1)
-        status = st.selectbox("Order Status", ["pending", "loading", "delivered"], help="Choose the status of the order",
+        status = st.selectbox("Order Status", options=[status.value for status in OrderStatus],
+                              help="Choose the status of the order",
                               placeholder="pending")
         #Submit button
         submit_button = st.form_submit_button(label="Add Order", use_container_width=True)
@@ -183,8 +184,8 @@ def init_update_order_status():
 
     with st.form(key='update_order_status_form'):
         order_id = st.number_input("Order ID", min_value=1, step=1)
-        new_status = st.selectbox("Order Status", ["pending", "loading", "delivered"],
-                              help="Choose the status of the order")
+        new_status = st.selectbox("Order Status", ["pending", "processed", "delivered"],
+                              help="Choose the order status")
         submit_button = st.form_submit_button("Update Status")
 
     if submit_button:

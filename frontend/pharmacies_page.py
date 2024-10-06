@@ -144,20 +144,20 @@ def init_update_pharmacy():
                                 placeholder="Str. Republicii, BV",
                                 max_chars=255
                                 )
-        email = st.text_input("New Email Address",
-                              help="Enter the new email address.",
-                              placeholder="new_pharma_name@yahoo.com"
-                              )
         contact_phone = st.text_input("New Contact Phone",
                                       help="Enter a new phone number",
                                       placeholder="+40 7XX XXX XXX",
                                       max_chars=15
                                       )
+        email = st.text_input("New Email Address",
+                              help="Enter the new email address.",
+                              placeholder="new_pharma_name@yahoo.com"
+                              )
         submit_button = st.form_submit_button(label="Update Pharmacy")
 
     if submit_button:
         if name and address and email and contact_phone:
-            response = update_pharmacy(pharmacy_id, name, address, email, contact_phone)
+            response = update_pharmacy(pharmacy_id, name, address, contact_phone, email)
             if response.status_code == 200:
                 st.success(f"Pharmacy with ID {pharmacy_id} updated successfully.")
             else:

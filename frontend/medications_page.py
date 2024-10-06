@@ -1,18 +1,7 @@
 import streamlit as st
 import pandas as pd
-import base64
-from PIL import Image
 from utils import (get_all_medications, get_medication, create_medication, update_medication, delete_medication,
-                   get_medications_and_pharmacies, decode_base64_to_image)
-
-
-def convert_image_to_base64(uploaded_file):
-    if uploaded_file is not None:
-        # Read the uploaded file as bytes
-        file_bytes = uploaded_file.read()
-        # Convert bytes to base64
-        return base64.b64encode(file_bytes).decode('utf-8')
-    return None
+                   get_medications_and_pharmacies, convert_image_to_base64, decode_base64_to_image)
 
 
 def show_medications_page():
@@ -69,7 +58,7 @@ def view_all_medications():
     df_medication = filter_medications(df_medication, search_query, stock_level_filter)
 
     #Sorting
-    sort_medications = st.selectbox("Sort by", options=["Name", "Type", "Quantity", "Price"], index=0)
+    sort_medications = st.selectbox("Sort by", options=["Name", "Type"], index=0)
     sort_ascending = st.checkbox("Sort Ascending", value=True)
 
     if sort_medications:
@@ -194,12 +183,12 @@ def add_medication():
         pharma_id = st.number_input("Pharma ID", min_value=1, step=1,
                                     help="Enter the id of the pharmacy where the medication can be found")
         stock = st.number_input("Stock", min_value=1, step=1, help="Enter the available stock quantity.")
-        image = st.file_uploader("Upload Image (JPG/JPEG/PNG)", type=["jpg", "jpeg", "png"])
+        image = st.file_uploader("Upload Image (only JPG/JPEG/PNG format) (Optional)", type=["jpg", "jpeg", "png"])
 
         submit_button = st.form_submit_button(label="Add Medication", use_container_width=True)
 
     if submit_button:
-        valid, message = validate_medication_input(name, type, pharma_id, stock, quantity, price, image)
+        valid, message = validate_medication_input(name, type, pharma_id, stock, quantity, price)
 
         if not valid:
             st.error(message)
@@ -207,17 +196,16 @@ def add_medication():
             result = create_medication(name, type, quantity, price, pharma_id, stock, image)
             if result:
                 st.success("Medication added successfully!")
+                st.json(result)
             else:
                 st.error("An error occurred while adding the medication.")
 
 
 
 #Validate medication input
-def validate_medication_input(name, type, pharma_id, stock, quantity, price, image):
+def validate_medication_input(name, type, pharma_id, stock, quantity, price):
     if not all([name, type, pharma_id]) or stock < 1 or quantity < 1 or price < 0.5:
         return False, "All fields must be filled in with valid data."
-    if image is None:
-        return False, "You must upload an image of the medication."
     return True, ""
 
 
@@ -240,14 +228,14 @@ def init_update_medication():
         pharma_id = st.number_input("Pharma ID", min_value=1, step=1,
                                     help="Enter the id of the pharmacy where the medication can be found")
         stock = st.number_input("Stock", min_value=1, step=1, help="Enter the available stock quantity.")
-        image = st.file_uploader("Upload New Image (JPG/JPEG/PNG)", type=["jpg", "jpeg", "png"])
+        image = st.file_uploader("Upload New Image (JPG/JPEG/PNG) (Optional)", type=["jpg", "jpeg", "png"])
 
         #Submit button
         submit_button = st.form_submit_button(label="Update Medication")
 
     #Action on form submission
     if submit_button:
-        valid, message = validate_medication_input(name, type, pharma_id, stock, quantity, price, image)
+        valid, message = validate_medication_input(name, type, pharma_id, stock, quantity, price)
 
         if not valid:
             st.error(message)
@@ -282,5 +270,4 @@ def init_delete_medication():
                 st.success(f"Medication with ID {medication_id} deleted successfully.")
             else:
                 st.error("Medication not found or failed to delete. Please try again.")
-
 
