@@ -13,11 +13,15 @@ from models import (MedicationRequest, MedicationResponse, MedicationDB, Medicat
 from medications import MedicationRepository
 from pharmacies import PharmacyRepository
 from orders import OrderRepository
+from stock_forecast import predict_optimal_stock
 import base64
 
 
 models.Base.metadata.create_all(bind=engine)                            #Create DB tables
 app = FastAPI(debug=True, title="Pharma Stock API", version="1.0")      #Initialize FastAPI app
+
+
+CSV_PATH = "medication_orders_data.csv"   #Dataset path
 
 
 #Repositories
@@ -254,4 +258,16 @@ def read_medications_with_pharmacies(db: Session = Depends(get_db)):
         }
         for medication, pharmacy in medications_with_pharmacies
     ]
+
+
+#Stock Forecast
+@app.get("/forecast-stock/{medication_name}")
+def get_stock_forecast(medication_name: str, db: Session = Depends(get_db)):
+    try:
+        forecast = predict_optimal_stock(db, medication_name, CSV_PATH)
+        if "error" in forecast:
+            raise HTTPException(status_code=404, detail=forecast["error"])
+        return forecast
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 

@@ -8,3 +8,6 @@ python-dotenv
 Pillow #image process
 python-multipart #manage uploaded files
 pandas
+numpy
+scikit-learn
+xgboost

@@ -72,6 +72,7 @@ def main():
     elif choice == "📋 Orders":
         show_orders_page()
 
+
     calendar = st.sidebar.date_input("Select a date", datetime.now())
 
 
