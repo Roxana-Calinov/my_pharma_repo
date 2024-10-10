@@ -8,6 +8,7 @@ import streamlit as st
 from medications_page import show_medications_page
 from pharmacies_page import show_pharmacies_page
 from orders_page import show_orders_page
+from about_medication import main as about_medications_main
 from stock_forecast_page import show_stock_forecast_page
 from datetime import datetime
 from dotenv import load_dotenv
@@ -20,6 +21,7 @@ menu_pages = [
     "💊 Medications",
     "⚕️ Pharmacies",
     "📋 Orders",
+    "🤖 Medication Info",
     "📈 Stock Forecast"
 ]
 
@@ -73,6 +75,8 @@ def main():
         show_pharmacies_page()
     elif choice == "📋 Orders":
         show_orders_page()
+    elif choice == "🤖 Medication Info":
+        about_medications_main()
     elif choice == "📈 Stock Forecast":
         show_stock_forecast_page()
 
