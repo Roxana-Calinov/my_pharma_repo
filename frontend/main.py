@@ -8,6 +8,7 @@ import streamlit as st
 from medications_page import show_medications_page
 from pharmacies_page import show_pharmacies_page
 from orders_page import show_orders_page
+from stock_forecast_page import show_stock_forecast_page
 from datetime import datetime
 from dotenv import load_dotenv
 import os
@@ -18,7 +19,8 @@ menu_pages = [
     "🏠 Main page",
     "💊 Medications",
     "⚕️ Pharmacies",
-    "📋 Orders"
+    "📋 Orders",
+    "📈 Stock Forecast"
 ]
 
 
@@ -71,6 +73,8 @@ def main():
         show_pharmacies_page()
     elif choice == "📋 Orders":
         show_orders_page()
+    elif choice == "📈 Stock Forecast":
+        show_stock_forecast_page()
 
 
     calendar = st.sidebar.date_input("Select a date", datetime.now())

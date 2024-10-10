@@ -302,7 +302,7 @@ def get_medications_and_pharmacies():
         data = response.json()
         for item in data:
             if 'image' in item['medication'] and item['medication']['image']:
-                # Convert base64 image to PIL Image
+                #Convert base64 image to PIL Image
                 decoded_image = decode_base64_to_image(item['medication']['image'])
                 if decoded_image:
                     item['medication']['image'] = decoded_image
@@ -310,4 +310,13 @@ def get_medications_and_pharmacies():
                     item['medication']['image'] = None      #Set to None if decoding fails
     return response
 
+
+#API request for fetching the stock forecast for a specific medication
+def get_stock_forecast(medication_name: str):
+    """
+    Get stock forecast for a specific medication
+    """
+    response = requests.get(f"{API_URL}/forecast-stock/{medication_name}")
+    response.raise_for_status()   #Raises HTTPError for bad responses
+    return response.json()
 
