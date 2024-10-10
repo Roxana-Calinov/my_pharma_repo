@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from utils import get_all_pharmacies, get_pharmacy, create_pharmacy, update_pharmacy, delete_pharmacy
 import re
+import pydeck as pdk
 
 
 def show_pharmacies_page():
@@ -22,6 +23,8 @@ def show_pharmacies_page():
         init_update_pharmacy()
     elif choice == "Delete Pharmacy":
         init_delete_pharmacy()
+
+    display_locations()
 
 
 #Display all pharmacies
@@ -175,3 +178,52 @@ def init_delete_pharmacy():
             st.success(f"Pharmacy with ID {pharmacy_id} deleted successfully.")
         else:
             st.error("Failed to delete pharmacy.")
+
+
+#Pharma Maps
+def display_locations():
+    #Create DB with geographical coordinates, location labels and colors
+    pharma_locations = pd.DataFrame({
+        'lat': [45.6428, 45.6551, 45.6469],                                 #Latitude
+        'lon': [25.5893, 25.5963, 25.5884],                                 #Longitude
+        'location': ['Str. Republicii', 'Str. Lunga', 'Piata Teatrului'],   #Locations
+        'color': [[0,153,153], [0,153,0], [153, 0,76]]
+    })
+
+    layer = pdk.Layer(
+        'ScatterplotLayer',
+        pharma_locations,
+        get_position='[lon, lat]',
+        get_radius=100,
+        get_fill_color='color',
+        pickable=True
+    )
+
+    #Add text for every location
+    text_layer = pdk.Layer(
+        "TextLayer",
+        pharma_locations,
+        get_position='[lon, lat]',
+        get_text="location",
+        get_size=16,
+        get_color=[255, 255, 255],
+        get_alignment_baseline="'bottom'"
+    )
+
+    #Map configuration
+    view_state = pdk.ViewState(
+        latitude=45.648,   #Centered on Brasov
+        longitude=25.593,
+        zoom=13.5,
+        pitch=45
+    )
+
+    #Display map with layers
+    r = pdk.Deck(
+        layers=[layer, text_layer],
+        initial_view_state=view_state,
+        tooltip={"text": "{location}"}
+    )
+
+    #Display the map
+    st.pydeck_chart(r)
