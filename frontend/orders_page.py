@@ -1,12 +1,81 @@
 import streamlit as st
 import pandas as pd
-from utils import get_all_orders, get_order, create_order, update_order, update_order_status, delete_order, OrderStatus
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from utils import (get_all_orders, get_order, create_order, update_order, update_order_status, delete_order, OrderStatus,
+                   get_all_medications)
+
+
+def show_best_selling_medication():
+    st.subheader("Best-Selling Medication per Pharmacy")
+
+    #Fetch all orders
+    with st.spinner("Loading order..."):
+        orders = get_all_orders().json()
+
+    if not orders:
+        st.write("There are no orders.")
+        return
+
+    #Convert orders to DataFrame
+    df_orders = pd.DataFrame(orders)
+
+    #Expand the order_items column
+    df_items = df_orders.explode('order_items')
+    df_items['medication_id'] = df_items['order_items'].apply(lambda x: x['medication_id'])
+    df_items['quantity'] = df_items['order_items'].apply(lambda x: x['quantity'])
+
+    #Group by pharmacy_id and medication_id, sum the quantities
+    df_grouped = df_items.groupby(['pharmacy_id', 'medication_id'])['quantity'].sum().reset_index()
+
+    #Fetch all medications
+    with st.spinner("Loading medication..."):
+        medications = get_all_medications().json()
+
+    #Create a dictionary by mapping medication's ID to medication's name
+    medication_names = {med['id']: med['name'] for med in medications}
+
+    #Add medication names to DataFrame
+    df_grouped['medication_name'] = df_grouped['medication_id'].map(medication_names)
+
+    #Create subplots for each pharmacy
+    fig = make_subplots(rows=1, cols=3, specs=[[{'type': 'domain'}, {'type': 'domain'}, {'type': 'domain'}]],
+                        subplot_titles=("Pharma A", "Pharma B", "Pharma C"))
+
+    colors = ['#00CED1', '#FFA500', '#8B0000', '#00008B', '#FF99CC', '#00CED1']
+
+    for i, pharmacy_id in enumerate([1, 2, 3], start=1):
+        pharmacy_data = df_grouped[df_grouped['pharmacy_id'] == pharmacy_id]
+
+        #Best-selling medication
+        best_selling = pharmacy_data.loc[pharmacy_data['quantity'].idxmax()]
+
+        #Total quantity per pharmacy
+        total_quantity = pharmacy_data['quantity'].sum()
+
+        #Quantity for "Other medications"
+        other_quantity = total_quantity - best_selling['quantity']
+
+        labels = [best_selling['medication_name'], 'Other medications']
+        values = [best_selling['quantity'], other_quantity]
+
+        fig.add_trace(go.Pie(labels=labels, values=values, name=f"Pharma {pharmacy_id}",
+                             marker_colors=colors), 1, i)
+
+    fig.update_traces(textposition='inside', textinfo='percent+label')
+    fig.update_layout(
+        title_text="Best-Selling Medication vs. Other Medications",
+        height=500,
+        width=900,
+    )
+
+    st.plotly_chart(fig)
 
 
 def show_orders_page():
     st.subheader("Orders: Stock & Details")
     menu = ["View All Orders", "View Specific Order", "Add New Order", "Update Order", "Update Order Status",
-            "Delete Order"]
+            "Delete Order", "Best Selling Medication"]
     choice = st.selectbox("Select an option", menu)
 
     if choice == "View All Orders":
@@ -21,6 +90,8 @@ def show_orders_page():
         init_update_order_status()
     elif choice == "Delete Order":
         init_delete_order()
+    elif choice == "Best Selling Medication":
+        show_best_selling_medication()
 
 
 #Display all orders
@@ -36,10 +107,19 @@ def view_all_orders():
     #Convert orders to DF
     df_order = pd.DataFrame(orders)
 
-    #Convert order_items to string representation
+    #Convert order_items to string
     df_order['order_items'] = df_order['order_items'].apply(lambda items: ', '.join(
         [f"Medication ID: {item['medication_id']}, Quantity: {item['quantity']}, Price: {item['price']}" for item in items]
     ))
+
+    #Create a new column for pharmacy name
+    pharmacy_names = {1: "Pharma A", 2: "Pharma B", 3: "Pharma C"}
+    df_order['pharmacy_name'] = df_order['pharmacy_id'].map(pharmacy_names)
+
+    #Reorder columns for adding pharmacy_name after pharmacy_id
+    columns = df_order.columns.tolist()
+    columns.insert(columns.index('pharmacy_id') + 1, columns.pop(columns.index('pharmacy_name')))
+    df_order = df_order[columns]
 
     #Display the DF as a table
     st.dataframe(df_order)
@@ -119,7 +199,7 @@ def add_order():
             result = create_order(pharmacy_id, st.session_state['order_items'], status)
             if result.status_code == 200:
                 st.success(f"Order added successfully with ID: {result.json()['id']}")
-                st.session_state['order_items'] = []  # Clear the items after a successful order
+                st.session_state['order_items'] = []   #Clear the items after a successful order
             else:
                 st.error("Failed to add order. Please try again.")
 
@@ -138,6 +218,15 @@ def init_update_order():
     if 'order_items' not in st.session_state:
         st.session_state['order_items'] = []
 
+    #Collect order items (outside the form)
+    with st.expander("Update Medication Quantity"):
+        medication_id = st.number_input("Medication ID", min_value=1, step=1, help="Enter the medication ID.")
+        quantity = st.number_input("Medication order quantity", min_value=1, step=1,
+                                   help="Enter the quantity of medication")
+        if st.button("Add Item"):
+            st.session_state['order_items'].append({"medication_id": medication_id, "quantity": quantity})
+            st.success(f"Updated medication {medication_id} with quantity {quantity}")
+
     #Form for updating order details
     with st.form(key='update_order_form'):
         order_id = st.number_input("Order ID", min_value=1, step=1, help="Enter the order ID you want to update.")
@@ -153,26 +242,17 @@ def init_update_order():
         #Submit button
         submit_button = st.form_submit_button(label="Update Order")
 
-    #Collect order items (outside the form)
-    with st.expander("Update Medication Quantity"):
-        medication_id = st.number_input("Medication ID", min_value=1, step=1, help="Enter the medication ID.")
-        quantity = st.number_input("Medication order quantity", min_value=1, step=1,
-                                   help="Enter the quantity of medication")
-        if st.button("Add Item"):
-            st.session_state['order_items'].append({"medication_id": medication_id, "quantity": quantity})
-            st.success(f"Updated medication {medication_id} with quantity {quantity}")
-
     #Action on form submission
     if submit_button:
         valid, message = validate_order_input(pharmacy_id, st.session_state['order_items'], status)
         if not valid:
             st.error(message)
         else:
-            #Update the order instead of creating a new one
+            #Update the order
             result = update_order(order_id, pharmacy_id, st.session_state['order_items'], status)
             if result.status_code == 200:
                 st.success(f"Order updated successfully with ID: {order_id}")
-                st.session_state['order_items'] = []  #Clear the items after a successful update
+                st.session_state['order_items'] = []   #Clear items after a successful update
             else:
                 st.error("Failed to update order. Please try again.")
 
@@ -199,7 +279,6 @@ def init_update_order_status():
             st.error("Unexpected error.")
         elif result.status_code == 200:
             st.success(f"Order updated successfully with ID: {order_id}")
-            st.json(result.json())
         else:
             st.error(f"Failed to update order. Status code: {result.status_code}")
             st.error(f"Error message: {result.text}")

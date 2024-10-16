@@ -70,11 +70,25 @@ class MedicationRepository:
         """
         db_medication = db.query(MedicationDB).filter(MedicationDB.id == medication_id).first()
 
+        if not db_medication:
+            raise HTTPException(status_code=404, detail="Medication not found.")
+
         #Check for duplicates before update
         if self.check_duplicate_medication(db, medication_request):
             raise HTTPException(status_code=400, detail="Medication already exists.")
 
         update_data = medication_request.model_dump(exclude_unset=True)
+
+        if 'stock' in update_data and update_data['stock'] != db_medication.stock:
+            try:
+                #Update stock for all medications with the same name
+                db.query(MedicationDB).filter(MedicationDB.name == db_medication.name).update(
+                    {"stock": update_data['stock']})
+
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise HTTPException(status_code=500, detail="Failed to update stock for all medications")
 
         if db_medication:
             if 'image' in update_data:

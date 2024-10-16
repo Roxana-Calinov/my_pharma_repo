@@ -61,7 +61,7 @@ def analyze_image(image):
                                 "Specify the medication's type (RX or OTC)."
                                 "Finally, it is important to identify the substances contained."
                                 "In addition, it is important to determine when this medication should be recommended "
-                                "and for what treatment. Fit it under 200 characters."
+                                "and for what treatment. Fit it under 250 characters."
                     }
                 ]
             }
@@ -89,9 +89,8 @@ def generate_alternatives(image_description):
         "messages": [
             {
                 "role": "user",
-                "content": f"Your target audience are the healthcare professionals."
-                           f"Generate alternatives for the medication based on the uploaded image description: {image_description}. "
-                           f"Give 3 other alternatives to this medication, based on the contained substances."
+                "content": f"Generate 3 alternatives for the medication based on the uploaded image description:"
+                           f" {image_description} and the contained active substances."
             }
         ]
     }
@@ -103,7 +102,7 @@ def generate_alternatives(image_description):
 
 def main():
     st.subheader("Identify the medication and discover alternatives")
-    st.info("Upload an image of the medication, and find out details along with 3 alternatives based on the active substance.")
+    st.info("Upload a medication image, and find out details along with 3 alternatives based on the active substance.")
 
     uploaded_file = st.file_uploader("Upload a medication image...", type=["jpg", "jpeg", "png"])
 

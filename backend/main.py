@@ -2,6 +2,7 @@
 FASTAPI: Pharma Stock API
 To run the app, in terminal: uvicorn main:app --reload
 """
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form
 from typing import List, Optional
 from sqlalchemy.orm import Session
@@ -129,6 +130,8 @@ async def update_medication(
     if image:
         validate_image(image)
         request.image = await process_image(image)
+    else:
+        request.image = None
 
     medication = medication_repo.update(db, medication_id, request)
 

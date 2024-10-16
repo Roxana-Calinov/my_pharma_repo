@@ -180,9 +180,9 @@ def init_delete_pharmacy():
             st.error("Failed to delete pharmacy.")
 
 
-#Pharma Maps
+#MAP
 def display_locations():
-    #Create DB with geographical coordinates, location labels and colors
+    #Create DF with geographical coordinates, location labels and colors
     pharma_locations = pd.DataFrame({
         'lat': [45.6428, 45.6551, 45.6469],                                 #Latitude
         'lon': [25.5893, 25.5963, 25.5884],                                 #Longitude
@@ -227,3 +227,4 @@ def display_locations():
 
     #Display the map
     st.pydeck_chart(r)
+

@@ -5,7 +5,7 @@ from utils import (get_all_medications, get_medication, create_medication, updat
 
 
 def show_medications_page():
-    st.subheader("Medications: Stock & Details")
+    st.subheader("Medications")
     menu = ["Medications and Pharmacies", "View All Medications", "View Specific Medication", "Add New Medication",
             "Update Medication", "Delete Medication"]
     choice = st.selectbox("Select an option", menu)
@@ -135,6 +135,7 @@ def view_pharma_and_med():
         st.subheader("All Medications Information")
         df_all_medications = pd.DataFrame(all_medications)
         st.dataframe(df_all_medications)
+
     else:
         st.error("No valid data.")
 
@@ -196,7 +197,6 @@ def add_medication():
             result = create_medication(name, type, quantity, price, pharma_id, stock, image)
             if result:
                 st.success("Medication added successfully!")
-                st.json(result)
             else:
                 st.error("An error occurred while adding the medication.")
 
@@ -260,7 +260,6 @@ def init_delete_medication():
         #Submit button
         submit_button = st.form_submit_button(label="Delete Medication")
 
-    #Action on form submission
     if submit_button:
         if medication_id <= 0:
             st.error("Please enter a valid medication ID.")

@@ -10,6 +10,7 @@ from pharmacies_page import show_pharmacies_page
 from orders_page import show_orders_page
 from about_medication import main as about_medications_main
 from stock_forecast_page import show_stock_forecast_page
+from dashboard import quantity_vs_stock_level_chart
 from datetime import datetime
 from dotenv import load_dotenv
 import os
@@ -32,6 +33,10 @@ def load_env_variables():
     """
     load_dotenv()
 
+def display_logo():
+    logo_url = os.getenv("LOGO_PATH")
+    st.sidebar.image(logo_url, use_column_width=True)
+
 
 def cover_image():
     """
@@ -44,7 +49,9 @@ def display_sidebar():
     """
     Display sidebar
     """
-    st.sidebar.title("🏥 SmartPharma Stock Dashboard")
+    display_logo()
+
+    st.sidebar.title("🏥 SmartPharma Dashboard")
     return st.sidebar.selectbox("Select the page below:", menu_pages)
 
 
@@ -52,16 +59,18 @@ def show_main_page():
     """
     Display main page content
     """
-    st.header("Welcome to SmartPharma Stock!")
+    st.header("Welcome to SmartPharma!")
     st.write("This application allows you to manage medications, pharmacies, and orders")
     st.write("Use the sidebar to navigate to different sections.")
+
+    quantity_vs_stock_level_chart()
 
 
 def main():
     image_path = cover_image()
     st.image(image_path, use_column_width=True)
 
-    st.title("🏥 SmartPharma Stock")
+    st.title("🏥 SmartPharma")
 
     #Display sidebar
     choice = display_sidebar()
