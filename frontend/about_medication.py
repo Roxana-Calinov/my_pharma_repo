@@ -55,13 +55,21 @@ def analyze_image(image):
                     },
                     {
                         "type": "text",
-                        "text": "The uploaded image should be a medication."
-                                "It is necessary to identify the medication/product and to assist the Pharmacy Users"
-                                " in associating it with relevant symptoms."
-                                "Specify the medication's type (RX or OTC)."
-                                "Finally, it is important to identify the substances contained."
-                                "In addition, it is important to determine when this medication should be recommended "
-                                "and for what treatment. Fit it under 250 characters."
+                        "text": """
+                                Analyze the uploaded image. The image should be a medication or a pharmaceutical product.
+                                If the image does NOT represent a medication or a pharmaceutical product, your ENTIRE 
+                                response must be ONLY:
+                                'The image is not a medication or a pharmaceutical product!'
+                                Do NOT provide ANY additional information or description if it's not a medication.
+                                
+                                If the image represent a medication or a pharma product, provide JUST the following
+                                informations:\n
+                                1. Identify the medication.\n
+                                2. Specify the medication's type (RX or OTC).\n
+                                3. Identify the active substance/ingredients.\n
+                                4. When this medication should be recommended and for what treatment. 
+                                Fit it under 250 characters.
+                        """
                     }
                 ]
             }
@@ -90,7 +98,39 @@ def generate_alternatives(image_description):
             {
                 "role": "user",
                 "content": f"Generate 3 alternatives for the medication based on the uploaded image description:"
-                           f" {image_description} and the contained active substances."
+                           f" {image_description}."
+                           f"Display the contained active substances for each alternative."
+                           f"The response should look like: ***medicadion***: contains ***active substance***"
+                           f"Do NOT provide ANY additional informations!"
+            }
+        ]
+    }
+
+    response = requests.post(API_URL, headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()['content'][0]['text']
+
+
+def about_suppliers(image_description):
+    """
+    Generates advices about suppliers.
+    """
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01"
+    }
+
+    data = {
+        "model": "claude-3-5-sonnet-20240620",
+        "max_tokens": 300,
+        "messages": [
+            {
+                "role": "user",
+                "content": f"Generate TOP 3 pharmaceutical romanian suppliers and tell me in max 150 characters why shoud"
+                           f"I made business with them."
+                           f"The response should look like: top no. ***supplier***: reason."
+                           f"Do NOT provide ANY additional informations!"
             }
         ]
     }
@@ -114,12 +154,19 @@ def main():
             with st.spinner("Analyzing image..."):
                 try:
                     image_description = analyze_image(image)
-                    st.subheader("Image Description:")
-                    st.write(image_description)
+                    if image_description == "The image is not a medication or a pharmaceutical product!":
+                        st.warning(image_description)
+                    else:
+                        st.subheader("About medication:")
+                        st.write(image_description)
 
-                    generated_post = generate_alternatives(image_description)
-                    st.subheader("Generated alternatives:")
-                    st.write(generated_post)
+                        generated_response = generate_alternatives(image_description)
+                        st.subheader("Generated alternatives:")
+                        st.write(generated_response)
+
+                        top_suppliers = about_suppliers(image_description)
+                        st.subheader("TOP 3 suppliers:")
+                        st.write(top_suppliers)
                 except Exception as e:
                     st.error(f"An error occurred: {str(e)}")
 
