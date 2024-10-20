@@ -1,12 +1,28 @@
+"""
+Orders page - manage orders data
+
+Main components:
+-> CRUD (Create, Read, Update, Delete for orders data
+-> Display analytics on best-selling medications (per pharmacy)
+-> Order status management
+"""
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import plotly.graph_objects as go           #Used for creating interactive plots
+from plotly.subplots import make_subplots   #Used for creating subplots
 from utils import (get_all_orders, get_order, create_order, update_order, update_order_status, delete_order, OrderStatus,
                    get_all_medications)
 
 
 def show_best_selling_medication():
+    """
+    Best-selling medications per pharmacy
+
+    The function retrieves all orders & medications and processes the data to determine the best-selling medication for
+    each pharmacy.
+    Plot a pie chart using Plotly showing the percentage comparison between the best-selling medication and other
+    medications per each pharmacy.
+    """
     st.subheader("Best-Selling Medication per Pharmacy")
 
     #Fetch all orders
@@ -73,6 +89,11 @@ def show_best_selling_medication():
 
 
 def show_orders_page():
+    """
+    Main function to display the orders management
+
+    Menu for order's management
+    """
     st.subheader("Orders: Stock & Details")
     menu = ["View All Orders", "View Specific Order", "Add New Order", "Update Order", "Update Order Status",
             "Delete Order", "Best Selling Medication"]
@@ -96,6 +117,9 @@ def show_orders_page():
 
 #Display all orders
 def view_all_orders():
+    """
+    Display all available orders
+    """
     st.subheader("All Orders")
     with st.spinner("Loading orders..."):
         orders = get_all_orders().json()
@@ -127,6 +151,9 @@ def view_all_orders():
 
 #View a specific order by its ID
 def view_order():
+    """
+    Display details about a specific order based on the user's input
+    """
     st.subheader("View Order Details")
     st.write("Enter the order ID below to display its details.")
 
@@ -162,6 +189,9 @@ def view_order():
 
 #Add a new order
 def add_order():
+    """
+    Form for adding order
+    """
     st.subheader("Add New Order")
     st.write("Fill in the details below to add a new order to the system.")
 
@@ -205,13 +235,20 @@ def add_order():
 
 #Validate order input
 def validate_order_input(pharmacy_id, order_items, status):
+    """
+    Validate input for creating/updating an order
+    """
     if not all([pharmacy_id, order_items, status]) or len(order_items) == 0:
         return False, "Invalid data."
     else:
         return True, ""
 
+
 #Update an existing order
 def init_update_order():
+    """
+    Form for order update
+    """
     st.subheader("Update Order")
     st.write("Enter the order ID and updated details below.")
 
@@ -259,6 +296,9 @@ def init_update_order():
 
 #Update order status
 def init_update_order_status():
+    """
+    Form for update order's status
+    """
     st.subheader("Update Order Status")
     st.write("Enter the order ID and the new status below.")
 
@@ -286,6 +326,9 @@ def init_update_order_status():
 
 #Delete an order by its ID
 def init_delete_order():
+    """
+    Form for deleting an order
+    """
     st.subheader("Delete Order")
     st.write("Enter the order ID you want to delete below.")
 
@@ -304,5 +347,4 @@ def init_delete_order():
             st.success(f"Order with ID {order_id} deleted successfully.")
         else:
             st.error(f"Failed to delete order with ID {order_id}. Please try again.")
-
 

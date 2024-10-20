@@ -94,7 +94,7 @@ def main():
     elif choice == "📢 ANMDMR Announcements":
         main_announcements()
 
-
+    #Display calendar
     calendar = st.sidebar.date_input("Select a date", datetime.now())
 
 

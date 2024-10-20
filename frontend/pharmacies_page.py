@@ -1,11 +1,24 @@
+"""
+Pharmacy page - manage pharma data
+
+Main components:
+-> CRUD (Create, Read, Update, Delete) for pharma data
+-> A map with the pharma location
+-> Input validation for email and phone number fields
+"""
 import streamlit as st
-import pandas as pd
+import pandas as pd    #data manipulation & visualization
 from utils import get_all_pharmacies, get_pharmacy, create_pharmacy, update_pharmacy, delete_pharmacy
-import re
-import pydeck as pdk
+import re              #Python build-in regex module, used for input validation
+import pydeck as pdk   #interactive map
 
 
 def show_pharmacies_page():
+    """
+    Main function for displaying the pharmacy management interface.
+
+    Menu for the CRUD operations and calls functions based on user's selection.
+    """
     st.subheader("Pharmacy Management")
 
     #Menu for CRUD operations
@@ -29,6 +42,12 @@ def show_pharmacies_page():
 
 #Display all pharmacies
 def view_all_pharmacies():
+    """
+    Display all available pharmacies in a table (including search functionality).
+
+    This function fetch all the pharma data, creates a Pandas DB, and display the data.
+    It also includes search functionality.
+    """
     st.subheader("All Pharmacies")
     #Fetch pharmacies from backend
     with st.spinner("Loading pharmacies..."):
@@ -53,6 +72,9 @@ def view_all_pharmacies():
 
 #Display a specific pharmacy
 def view_pharmacy():
+    """
+    Display a specific pharmacy based on the user's input
+    """
     st.subheader("View Pharmacy Details")
     st.write("Enter the id of the pharmacy to display its details.")
 
@@ -83,6 +105,9 @@ def view_pharmacy():
 
 #Add a new pharma
 def add_pharmacy():
+    """
+    Form for adding a new pharmacy
+    """
     st.subheader("Add New Pharmacy")
     st.write("Fill in the details below to add a new pharmacy to the system.")
 
@@ -127,8 +152,12 @@ def add_pharmacy():
         else:
             st.error("All fields must be filled in.")
 
+
 #Update pharma
 def init_update_pharmacy():
+    """
+    Form for update an existing pharmacy
+    """
     st.subheader("Update Pharmacy")
     st.write("Enter the pharmacy ID and update details below.")
 
@@ -168,8 +197,12 @@ def init_update_pharmacy():
         else:
             st.error("All fields must be filled in.")
 
+
 #Delete pharma
 def init_delete_pharmacy():
+    """
+    Form for deleting a pharmacy
+    """
     st.subheader("Delete Pharmacy")
     pharmacy_id = st.number_input("Pharmacy ID", min_value=1)
     if st.button("Delete Pharmacy"):
@@ -182,6 +215,9 @@ def init_delete_pharmacy():
 
 #MAP
 def display_locations():
+    """
+    Display a map with the pharma's locations using Pydeck
+    """
     #Create DF with geographical coordinates, location labels and colors
     pharma_locations = pd.DataFrame({
         'lat': [45.6428, 45.6551, 45.6469],                                 #Latitude

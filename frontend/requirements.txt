@@ -3,4 +3,8 @@ requests
 pillow
 pandas
 python-dotenv
+altair
+pydeck
+beautifulsoup4
+anthropic
 

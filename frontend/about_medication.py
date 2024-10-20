@@ -1,8 +1,12 @@
 """
-# pip install streamlit requests pillow
-# python -m pip install python-dotenv
-"""
+About Medication page
 
+Main components:
+-> Image upload & display functionality
+-> Image analysis using Anthropic's Claude vision model
+-> Generation of medications alternatives
+-> Generation information about pharmaceutical suppliers
+"""
 import streamlit as st
 import requests
 from PIL import Image
@@ -11,6 +15,8 @@ import base64
 import os
 from dotenv import load_dotenv
 
+
+#Load env variables
 load_dotenv()
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -113,7 +119,7 @@ def generate_alternatives(image_description):
 
 def about_suppliers(image_description):
     """
-    Generates advices about suppliers.
+    Generates advices about pharmaceutical suppliers.
     """
     headers = {
         "Content-Type": "application/json",
@@ -141,6 +147,10 @@ def about_suppliers(image_description):
 
 
 def main():
+    """
+    Main function that handle the uploaded medication, image analysis, medication alternative generation, and
+    suppliers informations
+    """
     st.subheader("Identify the medication and discover alternatives")
     st.info("Upload a medication image, and find out details along with 3 alternatives based on the active substance.")
 

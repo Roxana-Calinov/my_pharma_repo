@@ -1,16 +1,35 @@
+"""
+ANMDMR Announcements page
+
+Main components:
+-> Web scrapping of Romanian National Agency of Medications and Medical Devices (ANMDMR) announcements
+-> Processing the announcements using the Anthropic
+-> Display the processed announcements
+"""
 import streamlit as st
 import requests
-from bs4 import BeautifulSoup
-import os
-import anthropic
+from bs4 import BeautifulSoup     #Used for parsing HTML content
+import os                         #Used for accessing environment variables
+import anthropic                  #Interacting with Anthropic
 from dotenv import load_dotenv
 
 
+#Load env variables
 load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 
 def scrape_anmdmr_announcements():
+    """
+    Scrape announcements from the ANMDMR website
+
+    The function sends a GET request for the ANMDMR announcements page, parse the HTML content, and extracts the
+    informations for each announcement
+
+    Return:
+    list: a list of dictionaries, each containing details of an announcement
+          (date, title, link, and other information)
+    """
     url = "https://www.anm.ro/medicamente-de-uz-uman/anunturi-importante-medicamente-de-uz-uman/"
     response = requests.get(url)
 
@@ -47,6 +66,12 @@ def scrape_anmdmr_announcements():
 
 
 def process_with_anthropic(announcements):
+    """
+    Process the scraped announcements using Anthropic
+
+    The function takes the scraped announcements , formats them into a prompt, and sends this prompt to the Anthropic for
+    processing. The API returns a summarized version of the announcements in English.
+    """
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     announcements_text = "\n".join([
@@ -71,6 +96,11 @@ def process_with_anthropic(announcements):
 
 
 def main_announcements():
+    """
+    Main function for displaying the ANMDMR announcements
+
+    Display both the summarized and original announcements
+    """
     st.title("ANMDMR Announcements and Medication Stock Levels")
 
     #Scrape and display announcements

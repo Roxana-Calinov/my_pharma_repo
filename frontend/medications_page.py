@@ -1,10 +1,22 @@
+"""
+Medications page -> manage medications data
+
+Main components:
+-> CRUD (Create, Read, Update, Delete) for medications data
+-> Display medications with associated pharmacy information
+-> Filtering and sorting functionality for medication
+-> Display the medication's image where exists
+"""
 import streamlit as st
-import pandas as pd
+import pandas as pd      #data manipulation & visualization
 from utils import (get_all_medications, get_medication, create_medication, update_medication, delete_medication,
                    get_medications_and_pharmacies, convert_image_to_base64, decode_base64_to_image)
 
 
 def show_medications_page():
+    """
+    Main function for medication's management
+    """
     st.subheader("Medications")
     menu = ["Medications and Pharmacies", "View All Medications", "View Specific Medication", "Add New Medication",
             "Update Medication", "Delete Medication"]
@@ -24,8 +36,10 @@ def show_medications_page():
         init_delete_medication()
 
 
-#Filter medications based on search query and stock level
 def filter_medications(df, search_query, stock_level_filter):
+    """
+    Filter medications based on search query and stock level
+    """
     if search_query:
         df = df[
             df['name'].str.contains(search_query, case=False, na=False) |
@@ -39,8 +53,10 @@ def filter_medications(df, search_query, stock_level_filter):
     return df
 
 
-#Display all medications
 def view_all_medications():
+    """
+    Display all available medications in a table format with search, filter and sort functionality
+    """
     st.subheader("All Medications")
     with st.spinner("Loading medications..."):
         medications = get_all_medications().json()
@@ -71,8 +87,10 @@ def view_all_medications():
     st.dataframe(df_medication)
 
 
-#Medications and Pharmacies joined
 def view_pharma_and_med():
+    """
+    Display medications with the associated pharmacy
+    """
     IMAGE_WIDTH = 200
     IMAGE_HEIGHT = 150
 
@@ -140,8 +158,10 @@ def view_pharma_and_med():
         st.error("No valid data.")
 
 
-#View a specific medication by its ID
 def view_medication():
+    """
+    Display medication based on user's input
+    """
     st.subheader("View Medication Details")
     st.write("Enter the medication ID below to display its details.")
 
@@ -169,8 +189,10 @@ def view_medication():
             st.error(f"Medication with ID {medication_id} not found.")
 
 
-#Add a new medication
 def add_medication():
+    """
+    Add medication form
+    """
     st.subheader("Add New Medication")
     st.write("Fill in the details below to add a new medication to the system.")
 
@@ -202,15 +224,19 @@ def add_medication():
 
 
 
-#Validate medication input
 def validate_medication_input(name, type, pharma_id, stock, quantity, price):
+    """
+    Validate medication input
+    """
     if not all([name, type, pharma_id]) or stock < 1 or quantity < 1 or price < 0.5:
         return False, "All fields must be filled in with valid data."
     return True, ""
 
 
-#Update an existing medication
 def init_update_medication():
+    """
+    Update medication form
+    """
     st.subheader("Update Medication")
     st.write("Enter the medication ID and updated details below.")
 
@@ -247,8 +273,10 @@ def init_update_medication():
                 st.error("Medication not found or failed to update. Please try again.")
 
 
-#Delete a medication by its ID
 def init_delete_medication():
+    """
+    Delete medication form
+    """
     st.subheader("Delete Medication")
     st.write("Enter the medication ID to delete.")
 

@@ -1,7 +1,10 @@
+"""
+The relationship between the medication stock quantity and the stock level throw scatter plot and bar chart visualization
+"""
 from utils import get_medications_and_pharmacies
-import pandas as pd
+import pandas as pd      #data manipulation & visualization
 import streamlit as st
-import altair as alt
+import altair as alt     #data visualization
 
 
 def quantity_vs_stock_level_chart():

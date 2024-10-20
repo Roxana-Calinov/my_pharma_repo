@@ -1,16 +1,23 @@
+"""
+Medication stock forecast page
+"""
 import streamlit as st
-import pandas as pd
-import altair as alt
+import pandas as pd   #data manipulation & visualization
+import altair as alt  #statistical visualization lib -> interactive charts
 from utils import get_stock_forecast
 import time
 
 
 def create_metric_columns(data):
     """
-    #Display main informations (three columns with key metrics)
+    #Display main informations (three columns of key metrics)
 
     Args:
-    data (dict): Dictionary containing forecast data
+    data (dict): Dictionary containing forecast data for medication
+
+    -> Current Stock: Total stock currently available
+    -> Predicted Demand: Demand forecast for next month
+    -> Recommended Order: Suggested quantity to order (from suppliers) based on forecast
     """
     st.subheader("Main info")
     col1, col2, col3 = st.columns(3)
@@ -91,6 +98,9 @@ def prediction_overview_chart(data):
 
 
 def radial_historical_chart(data):
+    """
+    Radical chart comparing historical demand
+    """
     st.subheader("Historical Demand Comparison (Radial)")
     hist_data = pd.DataFrame({
         "Year": ["One year ago", "Two years ago", "Three years ago"],
@@ -113,6 +123,9 @@ def radial_historical_chart(data):
 
 
 def model_performance_heatmap(data):
+    """
+    Heatmap chart displaying model performance metrics
+    """
     st.subheader("Model Performance Heatmap")
     performance_data = pd.DataFrame(data['model_performance'].items(), columns=['Metric', 'Value'])
     performance_data['Model'] = performance_data['Metric'].apply(lambda x: x.split('_')[0])
@@ -132,6 +145,9 @@ def model_performance_heatmap(data):
 
 
 def progress_bar():
+    """
+    Progress bar
+    """
     progress_text = "Please wait..."
     progress_bar = st.progress(0, text=progress_text)
 
@@ -146,15 +162,18 @@ def show_stock_forecast_page():
     """
     st.title("Optimal Stock Forecast")
 
+    #User's input for medication name
     medication_name = st.text_input("Enter the medication name:")
 
     if st.button("Generate Forecast"):
         if medication_name:
             progress_bar()   #Call the progress bar
 
+            #Fetch stock forecast data
             stock_forecast_data = get_stock_forecast(medication_name)
 
             if stock_forecast_data:
+                #Display charts & tables with forecast data
                 create_metric_columns(stock_forecast_data)
                 model_performance_table(stock_forecast_data)
                 heatmap_chart = model_performance_heatmap(stock_forecast_data)
@@ -164,7 +183,6 @@ def show_stock_forecast_page():
                 stock_details_table(stock_forecast_data)
                 stock_distribution_chart(stock_forecast_data)
                 prediction_overview_chart(stock_forecast_data)
-
 
             else:
                 st.error("Unable to retrieve data for this medication.")
