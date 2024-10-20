@@ -61,7 +61,7 @@ def quantity_vs_stock_level_chart():
             #Combine both charts
             chart = points & bars
 
-            #Create Streamlit tabs for different themes
+            #Create Streamlit tabs with different themes
             tab1, tab2 = st.tabs(["Streamlit theme (default)", "Altair native theme"])
 
             with tab1:
@@ -72,6 +72,7 @@ def quantity_vs_stock_level_chart():
             st.error("No data available to generate the chart.")
     else:
         st.error("Error fetching data.")
+
 
 
 if __name__ == "__main__":

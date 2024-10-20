@@ -11,6 +11,7 @@ from orders_page import show_orders_page
 from about_medication import main as about_medications_main
 from stock_forecast_page import show_stock_forecast_page
 from dashboard import quantity_vs_stock_level_chart
+from announcements import main_announcements
 from datetime import datetime
 from dotenv import load_dotenv
 import os
@@ -23,7 +24,8 @@ menu_pages = [
     "⚕️ Pharmacies",
     "📋 Orders",
     "🤖 Medication Info",
-    "📈 Stock Forecast"
+    "📈 Stock Forecast",
+    "📢 ANMDMR Announcements"
 ]
 
 
@@ -63,6 +65,7 @@ def show_main_page():
     st.write("This application allows you to manage medications, pharmacies, and orders")
     st.write("Use the sidebar to navigate to different sections.")
 
+    #Display the quantity vs stock level chart
     quantity_vs_stock_level_chart()
 
 
@@ -88,6 +91,8 @@ def main():
         about_medications_main()
     elif choice == "📈 Stock Forecast":
         show_stock_forecast_page()
+    elif choice == "📢 ANMDMR Announcements":
+        main_announcements()
 
 
     calendar = st.sidebar.date_input("Select a date", datetime.now())
