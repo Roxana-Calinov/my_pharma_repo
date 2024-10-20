@@ -317,6 +317,8 @@ def get_stock_forecast(medication_name: str):
     Get stock forecast for a specific medication
     """
     response = requests.get(f"{API_URL}/forecast-stock/{medication_name}")
-    response.raise_for_status()   #Raises HTTPError for bad responses
-    return response.json()
 
+    if response.status_code == 200:
+        return response.json()
+    elif response.status_code is not 200:
+        return None

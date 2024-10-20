@@ -11,6 +11,8 @@ def quantity_vs_stock_level_chart():
     """
     Quantity vs. stock level
     """
+    st.subheader("Stock Quantity vs. Stock Level Overview")
+
     #Fetch medications and pharmacies data
     response = get_medications_and_pharmacies()
 
@@ -50,14 +52,16 @@ def quantity_vs_stock_level_chart():
             points = alt.Chart(source).mark_circle(opacity=0.5).encode(
                 x=alt.X('name:N', title='Medication'),
                 y=alt.Y('stock:Q', title='Stock'),
-                color=alt.condition(brush, 'stock_level:N', alt.value('lightgray')),
+                color=alt.Color('stock_level:N', title="Stock Level",
+                                scale=alt.Scale(domain=["low", "medium", "high"],
+                                                range=["red", "orange", "green"])),
                 tooltip=['name:N', 'stock:Q', 'stock_level:N']
             ).add_params(brush)
 
             #Create a bar chart to display count of stock levels filtered by brush
             bars = alt.Chart(source).mark_bar().encode(
-                y=alt.Y('stock_level:N', title='Stock Level'),
-                x=alt.X('count():Q', title='Count'),
+                x=alt.Y('stock_level:N', title='Stock Level'),
+                y=alt.X('count():Q', title='Number of Medications'),
                 color='stock_level:N'
             ).transform_filter(brush)
 
@@ -71,11 +75,16 @@ def quantity_vs_stock_level_chart():
                 st.altair_chart(chart, theme="streamlit", use_container_width=True)
             with tab2:
                 st.altair_chart(chart, theme=None, use_container_width=True)
+
+            #Stock level threshold
+            st.markdown("### Stock Level Threshold:")
+            st.markdown("- **Low**: 0-100 units")
+            st.markdown("- **Medium**: 101-350 units")
+            st.markdown("- **High**: 351 and above")
         else:
             st.error("No data available to generate the chart.")
     else:
         st.error("Error fetching data.")
-
 
 
 if __name__ == "__main__":

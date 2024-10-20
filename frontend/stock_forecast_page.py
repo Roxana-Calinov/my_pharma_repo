@@ -183,7 +183,6 @@ def show_stock_forecast_page():
                 stock_details_table(stock_forecast_data)
                 stock_distribution_chart(stock_forecast_data)
                 prediction_overview_chart(stock_forecast_data)
-
             else:
                 st.error("Unable to retrieve data for this medication.")
         else:

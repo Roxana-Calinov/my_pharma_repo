@@ -53,21 +53,24 @@ def view_all_pharmacies():
     with st.spinner("Loading pharmacies..."):
         pharmacies = get_all_pharmacies().json()
 
-    if len(pharmacies) == 0:
-        st.write("No pharmacies found.")
-    else:
-        df = pd.DataFrame(pharmacies)
+    if not pharmacies:
+        st.warning("The pharmacy has not been found.")
+        return
 
-        #Filtering
-        search_query = st.text_input("Search", "", help="Search by pharmacy name, address or email.")
-        if search_query:
-            df = df[
-                df['name'].str.contains(search_query, case=False) |
-                df['address'].str.contains(search_query, case=False) |
-                df['email'].str.contains(search_query, case=False)
-            ]
+    df = pd.DataFrame(pharmacies)
 
-        st.dataframe(df)
+    #Filtering
+    search_query = st.text_input("Search", "", help="Search by pharmacy name, address or email.")
+    if search_query:
+        df = df[
+            df['name'].str.contains(search_query, case=False) |
+            df['address'].str.contains(search_query, case=False) |
+            df['email'].str.contains(search_query, case=False)
+        ]
+        if df.empty:
+            st.warning("The pharmacy has not been found.")
+            return
+    st.dataframe(df)
 
 
 #Display a specific pharmacy
@@ -75,24 +78,25 @@ def view_pharmacy():
     """
     Display a specific pharmacy based on the user's input
     """
-    st.subheader("View Pharmacy Details")
-    st.write("Enter the id of the pharmacy to display its details.")
+    st.subheader("View Specific Pharmacy Details")
+    st.write("Enter the pharmacy id to view pharmacy information.")
 
     #Input field for pharma ID
     pharmacy_id = st.number_input("Pharmacy ID",
                                   min_value=1,
                                   step=1,
                                   value=1,
-                                  help="Enter the ID of the pharmacy you want to display."
+                                  help="Enter the ID of the pharmacy you want to view."
                                   )
 
     #Submit button
     if st.button("View Pharmacy"):
         #Fetch pharmacy details based on it's ID
         pharmacy = get_pharmacy(pharmacy_id)
-        pharmacy_json = pharmacy.json()
 
         if pharmacy.status_code == 200:
+            pharmacy_json = pharmacy.json()
+
             #Display pharmacy details if found
             st.subheader(f"Pharmacy Name: {pharmacy_json['name']}")
             st.write(f"**Address**: {pharmacy_json['address']}")
@@ -100,7 +104,7 @@ def view_pharmacy():
             st.write(f"**Phone**: {pharmacy_json['contact_phone']}")
         else:
             #Display an error message if the pharmacy have not been found
-            st.error(f"Pharmacy with ID {pharmacy_id} not found.")
+            st.error(f"Pharmacy with ID {pharmacy_id} has not been found.")
 
 
 #Add a new pharma

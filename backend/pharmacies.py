@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from models import PharmacyRequest, Pharmacy, PharmacyDB
 
+
 class PharmacyRepository:
     """
     Repo for managing the pharmacy data from DB

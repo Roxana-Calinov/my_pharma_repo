@@ -73,6 +73,10 @@ def view_all_medications():
 
     df_medication = filter_medications(df_medication, search_query, stock_level_filter)
 
+    if df_medication.empty:
+        st.warning("Medication not found.")
+        return
+
     #Sorting
     sort_medications = st.selectbox("Sort by", options=["Name", "Type"], index=0)
     sort_ascending = st.checkbox("Sort Ascending", value=True)
@@ -150,7 +154,7 @@ def view_pharma_and_med():
             st.info("No medications with valid images found.")
 
         #All medications
-        st.subheader("All Medications Information")
+        st.subheader("Medications & Pharmacies Data")
         df_all_medications = pd.DataFrame(all_medications)
         st.dataframe(df_all_medications)
 
@@ -162,20 +166,24 @@ def view_medication():
     """
     Display medication based on user's input
     """
-    st.subheader("View Medication Details")
-    st.write("Enter the medication ID below to display its details.")
+    st.subheader("View Specific Medication Details")
+    st.write("Search for the National Product Code (NPC) to view the medication.")
 
     #Input field for medication ID
-    medication_id = st.number_input("Medication ID", min_value=1, step=1, value=1,
-                                    help="Enter the ID of the medication you want to view.")
+    medication_id = st.number_input("NPC", min_value=1, step=1, value=1,
+                                    help="Enter the NPC of the medication you are looking for.")
 
     #Submit button
     if st.button("View Medication"):
         #Fetch medication details based on ID
         medication = get_medication(medication_id)
-        medication_json = medication.json()
+        if medication is None:
+            st.warning(f"Medication with NPC {medication_id} not found. Please check the NPC and try again.")
+            return
 
         if medication.status_code == 200:
+            medication_json = medication.json()
+
             #Display medication details
             st.subheader(f"Medication Name: {medication_json['name']}")
             st.write(f"**Type**: {medication_json['type']}")
@@ -186,7 +194,7 @@ def view_medication():
             st.write(f"**Stock Level**: {medication_json['stock_level']}")
         else:
             #Display an error message if the medication is not found
-            st.error(f"Medication with ID {medication_id} not found.")
+            st.warning(f"Medication with NPC {medication_id} not found. Please check the ID and try again.")
 
 
 def add_medication():
@@ -197,14 +205,14 @@ def add_medication():
     st.write("Fill in the details below to add a new medication to the system.")
 
     with st.form(key='add_medication_form'):
-        name = st.text_input("Medication Name", help="Enter the name of the medication.", placeholder="Medication Name")
+        name = st.text_input("Medication Name", help="Enter medication name.", placeholder="Medication Name")
         type = st.selectbox("Type", ["RX", "OTC"], help="Enter the medication's type", placeholder="RX or OTC")
         quantity = st.number_input("Quantity", min_value=1, step=1, value=1,
                                    help="Enter the medication's quantity at the pharmacy.")
         price = st.number_input("Price (RON)", min_value=0.5, step=0.01, value=0.5,
                                 help="Enter the price per unit of the medication.")
         pharma_id = st.number_input("Pharma ID", min_value=1, step=1,
-                                    help="Enter the id of the pharmacy where the medication can be found")
+                                    help="Enter the id of the pharmacy where the medication can be found.")
         stock = st.number_input("Stock", min_value=1, step=1, help="Enter the available stock quantity.")
         image = st.file_uploader("Upload Image (only JPG/JPEG/PNG format) (Optional)", type=["jpg", "jpeg", "png"])
 
