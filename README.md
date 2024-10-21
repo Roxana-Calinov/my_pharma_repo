@@ -89,7 +89,7 @@ models.
     uvicorn main:app --reload
 5. Access the Streamlit Frontend
     ```bash
-   streamlit run app.py
+   streamlit run main.py
 6. Open Your Browser:
     ```bash
    Access the Streamlit app at http://localhost:8501 and the FastAPI at http://localhost:8000
